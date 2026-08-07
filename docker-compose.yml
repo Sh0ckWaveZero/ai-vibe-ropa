@@ -1,0 +1,57 @@
+services:
+  postgres:
+    image: postgres:16-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-ropa}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-ropa}
+      POSTGRES_DB: ${POSTGRES_DB:-ropa}
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    ports:
+      - '127.0.0.1:${POSTGRES_HOST_PORT:-5433}:5432'
+    healthcheck:
+      test: ['CMD-SHELL', 'pg_isready -U ${POSTGRES_USER:-ropa} -d ${POSTGRES_DB:-ropa}']
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  backend:
+    build: ./backend
+    restart: unless-stopped
+    depends_on:
+      postgres:
+        condition: service_healthy
+    environment:
+      NODE_ENV: production
+      PORT: 4000
+      DATABASE_URL: postgresql://${POSTGRES_USER:-ropa}:${POSTGRES_PASSWORD:-ropa}@postgres:5432/${POSTGRES_DB:-ropa}?schema=public
+      ACCESS_TOKEN_SECRET: ${ACCESS_TOKEN_SECRET:?ACCESS_TOKEN_SECRET is required}
+      REFRESH_TOKEN_TTL_DAYS: ${REFRESH_TOKEN_TTL_DAYS:-7}
+      ACCESS_TOKEN_TTL_MIN: ${ACCESS_TOKEN_TTL_MIN:-15}
+      CORS_ORIGIN: ${PUBLIC_ORIGIN:-http://localhost:8080}
+      ADMIN_EMAIL: ${ADMIN_EMAIL:-admin@ropa.local}
+      ADMIN_PASSWORD: ${ADMIN_PASSWORD:-ChangeMe123!}
+
+  frontend:
+    build: ./frontend
+    restart: unless-stopped
+    depends_on:
+      - backend
+    environment:
+      PORT: 3000
+      BACKEND_ORIGIN: http://backend:4000
+
+  nginx:
+    image: nginx:1.27-alpine
+    restart: unless-stopped
+    depends_on:
+      - frontend
+      - backend
+    ports:
+      - '${PUBLIC_PORT:-8080}:80'
+    volumes:
+      - ./nginx/nginx.conf:/etc/nginx/nginx.conf:ro
+
+volumes:
+  postgres_data:

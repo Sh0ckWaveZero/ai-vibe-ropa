@@ -1,0 +1,71 @@
+@import 'tailwindcss';
+
+@custom-variant dark (&:where(.dark, .dark *));
+
+@theme {
+  --color-gold-50: #fbf6e9;
+  --color-gold-100: #f5e9c8;
+  --color-gold-200: #ecd69a;
+  --color-gold-300: #e0be68;
+  --color-gold-400: #d1a63e;
+  --color-gold-500: #c9a227;
+  --color-gold-600: #a9841c;
+  --color-gold-700: #866815;
+  --color-gold-800: #6b5313;
+  --color-gold-900: #574413;
+  --color-gold-950: #332810;
+
+  --font-sans:
+    'Noto Sans Thai', 'Noto Sans SC', ui-sans-serif, system-ui, -apple-system, 'Segoe UI', Roboto,
+    sans-serif;
+}
+
+:root {
+  --color-surface: var(--color-neutral-50);
+  --color-surface-raised: #ffffff;
+  --color-surface-muted: var(--color-neutral-100);
+  --color-border: var(--color-neutral-200);
+  --color-body: var(--color-neutral-800);
+  --color-muted: var(--color-neutral-500);
+  --color-primary: var(--color-gold-600);
+  --color-primary-hover: var(--color-gold-700);
+  --color-primary-contrast: #ffffff;
+  --color-accent: var(--color-yellow-500);
+  --color-accent-contrast: var(--color-neutral-900);
+}
+
+:root.dark {
+  --color-surface: var(--color-neutral-950);
+  --color-surface-raised: var(--color-neutral-900);
+  --color-surface-muted: var(--color-neutral-800);
+  --color-border: var(--color-neutral-700);
+  --color-body: var(--color-neutral-100);
+  --color-muted: var(--color-neutral-400);
+  --color-primary: var(--color-gold-400);
+  --color-primary-hover: var(--color-gold-300);
+  --color-primary-contrast: var(--color-neutral-950);
+  --color-accent: var(--color-yellow-400);
+  --color-accent-contrast: var(--color-neutral-900);
+}
+
+@theme inline {
+  --color-surface: var(--color-surface);
+  --color-surface-raised: var(--color-surface-raised);
+  --color-surface-muted: var(--color-surface-muted);
+  --color-border: var(--color-border);
+  --color-body: var(--color-body);
+  --color-muted: var(--color-muted);
+  --color-primary: var(--color-primary);
+  --color-primary-hover: var(--color-primary-hover);
+  --color-primary-contrast: var(--color-primary-contrast);
+  --color-accent: var(--color-accent);
+  --color-accent-contrast: var(--color-accent-contrast);
+}
+
+body {
+  font-family: var(--font-sans);
+}
+
+* {
+  border-color: var(--color-border);
+}
