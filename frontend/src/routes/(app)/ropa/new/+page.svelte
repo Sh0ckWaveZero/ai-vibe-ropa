@@ -1,9 +1,10 @@
 <script lang="ts">
   import { onMount } from 'svelte';
   import { goto } from '$app/navigation';
+  import { page } from '$app/state';
   import { getLocaleContext } from '$lib/i18n';
   import { apiFetch, ApiError } from '$lib/api/client';
-  import RopaForm, { type RopaFormValue } from '$lib/components/ropa/RopaForm.svelte';
+  import RopaForm, { type RopaFormValue, toRopaFormValue } from '$lib/components/ropa/RopaForm.svelte';
   import Button from '$lib/components/ui/Button.svelte';
   import type { PageData } from './$types';
 
@@ -49,12 +50,27 @@
 
   onMount(async () => {
     try {
-      const res = await apiFetch<{ departments: Department[] }>('/departments');
-      departments = res.departments;
+      const [deptRes] = await Promise.all([
+        apiFetch<{ departments: Department[] }>('/departments'),
+        loadCloneSource(),
+      ]);
+      departments = deptRes.departments;
     } finally {
       loadingDepartments = false;
     }
   });
+
+  async function loadCloneSource() {
+    const cloneFrom = page.url.searchParams.get('cloneFrom');
+    if (!cloneFrom) return;
+    try {
+      const res = await apiFetch<{ record: Parameters<typeof toRopaFormValue>[0] }>(`/ropa/${cloneFrom}`);
+      form = toRopaFormValue(res.record);
+      if (!canPickDepartment) form.departmentId = data.user.departmentId ?? '';
+    } catch {
+      // Source record no longer accessible — fall back to the blank form silently.
+    }
+  }
 
   function nullableOrNull(value: string): string | null {
     return value.trim() === '' ? null : value;

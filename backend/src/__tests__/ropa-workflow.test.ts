@@ -30,6 +30,44 @@ describe('ROPA status workflow', () => {
     expect(edited.body.record.activityName).toBe('Updated activity');
   });
 
+  it('editing a record writes a field-level before/after diff to the audit log', async () => {
+    const created = await editor.agent.post('/api/ropa').send(validRopaPayload(dept.id));
+    const id = created.body.record.id;
+    const originalName = created.body.record.activityName;
+
+    await editor.agent.patch(`/api/ropa/${id}`).send({ activityName: 'Diff-tracked activity' });
+
+    const auditRes = await admin.agent.get('/api/audit?take=10');
+    const entry = auditRes.body.logs.find((log: { action: string; entityId: string }) => log.action === 'ropa.update' && log.entityId === id);
+    expect(entry).toBeTruthy();
+    expect(entry.metadata.changes.activityName).toEqual({ old: originalName, new: 'Diff-tracked activity' });
+  });
+
+  it('audit log supports filtering by entity type, action, and pagination', async () => {
+    const created = await editor.agent.post('/api/ropa').send(validRopaPayload(dept.id));
+    const id = created.body.record.id;
+    await editor.agent.patch(`/api/ropa/${id}`).send({ activityName: 'Filter-tested activity' });
+
+    const byEntityType = await admin.agent.get('/api/audit?entityType=RopaRecord&pageSize=5');
+    expect(byEntityType.status).toBe(200);
+    expect(byEntityType.body.logs.length).toBeGreaterThan(0);
+    expect(byEntityType.body.logs.every((log: { entityType: string }) => log.entityType === 'RopaRecord')).toBe(true);
+
+    const byAction = await admin.agent.get('/api/audit?action=ropa.update&pageSize=5');
+    expect(byAction.body.logs.every((log: { action: string }) => log.action.includes('ropa.update'))).toBe(true);
+
+    const page1 = await admin.agent.get('/api/audit?pageSize=1&page=1');
+    const page2 = await admin.agent.get('/api/audit?pageSize=1&page=2');
+    expect(page1.body.logs).toHaveLength(1);
+    expect(page2.body.logs).toHaveLength(1);
+    expect(page1.body.logs[0].id).not.toBe(page2.body.logs[0].id);
+    expect(page1.body.total).toBeGreaterThan(1);
+
+    const entityTypesRes = await admin.agent.get('/api/audit/entity-types');
+    expect(entityTypesRes.status).toBe(200);
+    expect(entityTypesRes.body.entityTypes).toContain('RopaRecord');
+  });
+
   it('dept_editor lacks ropa.delete — cannot delete even their own draft', async () => {
     const created = await editor.agent.post('/api/ropa').send(validRopaPayload(dept.id));
     const id = created.body.record.id;

@@ -5,6 +5,7 @@
   import { apiFetch } from '$lib/api/client';
   import Dialog from '$lib/components/ui/Dialog.svelte';
   import Button from '$lib/components/ui/Button.svelte';
+  import NotificationBell from '$lib/components/layout/NotificationBell.svelte';
   import type { SessionUser } from '../../../app';
 
   let { user, onMenuClick }: { user: SessionUser; onMenuClick: () => void } = $props();
@@ -65,6 +66,8 @@
         </button>
       {/each}
     </div>
+
+    <NotificationBell />
 
     <button
       onclick={toggleTheme}

@@ -8,9 +8,12 @@ import { asyncHandler } from '../../utils/asyncHandler.js';
 import { logAudit } from '../../utils/audit.js';
 import { buildRopaExcelWorkbook } from '../../utils/exportExcel.js';
 import { buildRopaPdfSummary } from '../../utils/exportPdf.js';
+import attachmentsRoutes from './attachments.routes.js';
+import * as notificationsService from '../notifications/notifications.service.js';
 
 const router = Router();
 router.use(requireAuth);
+router.use('/:id/attachments', attachmentsRoutes);
 
 function parseDateRange(fromStr?: string, toStr?: string) {
   return {
@@ -29,18 +32,41 @@ const listQuerySchema = z.object({
   search: z.string().optional(),
   createdFrom: z.string().date().optional(),
   createdTo: z.string().date().optional(),
+  page: z.coerce.number().int().min(1).default(1),
+  pageSize: z.coerce.number().int().min(1).max(100).default(20),
 });
+
+const statsQuerySchema = z.object({
+  departmentId: z.string().uuid().optional(),
+  createdFrom: z.string().date().optional(),
+  createdTo: z.string().date().optional(),
+});
+
+// Registered before "/" only matters for /:id-style routes; kept up here
+// anyway since it's conceptually a sibling of the list endpoint.
+router.get(
+  '/stats',
+  requireAnyPermission('ropa.read_own', 'ropa.read_all'),
+  asyncHandler(async (req, res) => {
+    const query = statsQuerySchema.parse(req.query);
+    const result = await ropaService.getRopaStats(req.user!, {
+      ...query,
+      ...parseDateRange(query.createdFrom, query.createdTo),
+    });
+    res.json(result);
+  })
+);
 
 router.get(
   '/',
   requireAnyPermission('ropa.read_own', 'ropa.read_all'),
   asyncHandler(async (req, res) => {
     const query = listQuerySchema.parse(req.query);
-    const records = await ropaService.listRopaRecords(req.user!, {
+    const result = await ropaService.listRopaRecords(req.user!, {
       ...query,
       ...parseDateRange(query.createdFrom, query.createdTo),
     });
-    res.json({ records });
+    res.json(result);
   })
 );
 
@@ -52,7 +78,7 @@ const exportQuerySchema = z.object({
 });
 
 async function resolveExportScope(req: Request, query: z.infer<typeof exportQuerySchema>) {
-  const records = await ropaService.listRopaRecords(req.user!, {
+  const { records } = await ropaService.listRopaRecords(req.user!, {
     departmentId: query.departmentId,
     status: query.status,
     ...parseDateRange(query.createdFrom, query.createdTo),
@@ -175,8 +201,15 @@ router.patch(
   requireAnyPermission('ropa.update_own', 'ropa.update_all'),
   asyncHandler(async (req, res) => {
     const input = ropaInputSchema.partial().parse(req.body);
-    const record = await ropaService.updateRopaRecord(req.user!, req.params.id, input);
-    await logAudit({ userId: req.user!.id, action: 'ropa.update', entityType: 'RopaRecord', entityId: record.id, req });
+    const { record, changes } = await ropaService.updateRopaRecord(req.user!, req.params.id, input);
+    await logAudit({
+      userId: req.user!.id,
+      action: 'ropa.update',
+      entityType: 'RopaRecord',
+      entityId: record.id,
+      metadata: { changes },
+      req,
+    });
     res.json({ record });
   })
 );
@@ -197,6 +230,15 @@ router.post(
   asyncHandler(async (req, res) => {
     const record = await ropaService.submitRopaRecord(req.user!, req.params.id);
     await logAudit({ userId: req.user!.id, action: 'ropa.submit', entityType: 'RopaRecord', entityId: record.id, req });
+
+    const reviewerIds = await notificationsService.findUserIdsWithPermission('ropa.approve', req.user!.id);
+    await notificationsService.notifyUsers(reviewerIds, {
+      type: 'ropa.submitted',
+      entityType: 'RopaRecord',
+      entityId: record.id,
+      metadata: { referenceNo: record.referenceNo, activityName: record.activityName },
+    });
+
     res.json({ record });
   })
 );
@@ -220,6 +262,16 @@ router.post(
       metadata: { rejectionReason },
       req,
     });
+
+    if (record.createdById !== req.user!.id) {
+      await notificationsService.notifyUsers([record.createdById], {
+        type: decision === 'approve' ? 'ropa.approved' : 'ropa.rejected',
+        entityType: 'RopaRecord',
+        entityId: record.id,
+        metadata: { referenceNo: record.referenceNo, activityName: record.activityName, rejectionReason },
+      });
+    }
+
     res.json({ record });
   })
 );

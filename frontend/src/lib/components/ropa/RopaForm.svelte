@@ -1,12 +1,4 @@
-<script lang="ts">
-  import { getLocaleContext } from '$lib/i18n';
-  import Input from '$lib/components/ui/Input.svelte';
-  import Textarea from '$lib/components/ui/Textarea.svelte';
-  import Select from '$lib/components/ui/Select.svelte';
-  import Checkbox from '$lib/components/ui/Checkbox.svelte';
-  import TagInput from '$lib/components/ui/TagInput.svelte';
-  import Card from '$lib/components/ui/Card.svelte';
-
+<script module lang="ts">
   export interface RopaFormValue {
     departmentId: string;
     activityName: string;
@@ -28,6 +20,61 @@
     dpoContact: string;
     remarks: string;
   }
+
+  /** Shared by the detail page (populating the edit form) and the "duplicate as new" flow. */
+  export function toRopaFormValue(r: {
+    departmentId: string;
+    activityName: string;
+    purpose: string;
+    legalBasis: string;
+    controllerName: string;
+    jointController: string | null;
+    dataSubjectCategories: string[];
+    dataCategories: string[];
+    sensitiveDataCategories: string[];
+    collectionSource: string;
+    recipients: string[];
+    hasCrossBorderTransfer: boolean;
+    crossBorderDestination: string | null;
+    crossBorderSafeguards: string | null;
+    retentionPeriod: string;
+    disposalMethod: string;
+    securityMeasures: string;
+    dpoContact: string | null;
+    remarks: string | null;
+  }): RopaFormValue {
+    return {
+      departmentId: r.departmentId,
+      activityName: r.activityName,
+      purpose: r.purpose,
+      legalBasis: r.legalBasis,
+      controllerName: r.controllerName,
+      jointController: r.jointController ?? '',
+      dataSubjectCategories: r.dataSubjectCategories,
+      dataCategories: r.dataCategories,
+      sensitiveDataCategories: r.sensitiveDataCategories,
+      collectionSource: r.collectionSource,
+      recipients: r.recipients,
+      hasCrossBorderTransfer: r.hasCrossBorderTransfer,
+      crossBorderDestination: r.crossBorderDestination ?? '',
+      crossBorderSafeguards: r.crossBorderSafeguards ?? '',
+      retentionPeriod: r.retentionPeriod,
+      disposalMethod: r.disposalMethod,
+      securityMeasures: r.securityMeasures,
+      dpoContact: r.dpoContact ?? '',
+      remarks: r.remarks ?? '',
+    };
+  }
+</script>
+
+<script lang="ts">
+  import { getLocaleContext } from '$lib/i18n';
+  import Input from '$lib/components/ui/Input.svelte';
+  import Textarea from '$lib/components/ui/Textarea.svelte';
+  import Select from '$lib/components/ui/Select.svelte';
+  import Checkbox from '$lib/components/ui/Checkbox.svelte';
+  import TagInput from '$lib/components/ui/TagInput.svelte';
+  import Card from '$lib/components/ui/Card.svelte';
 
   interface Department {
     id: string;

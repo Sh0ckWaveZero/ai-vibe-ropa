@@ -16,6 +16,29 @@ services:
       timeout: 5s
       retries: 10
 
+  # Nightly pg_dump with rotation (daily/weekly/monthly retention). Dumps
+  # land in ./backups on the host — copy that directory off-box for real
+  # disaster recovery, this alone only protects against DB-container/volume
+  # loss, not a whole-host failure. See CLAUDE.md for the restore command.
+  backup:
+    image: prodrigestivill/postgres-backup-local:16
+    restart: unless-stopped
+    depends_on:
+      postgres:
+        condition: service_healthy
+    volumes:
+      - ./backups:/backups
+    environment:
+      POSTGRES_HOST: postgres
+      POSTGRES_DB: ${POSTGRES_DB:-ropa}
+      POSTGRES_USER: ${POSTGRES_USER:-ropa}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-ropa}
+      SCHEDULE: '@daily'
+      BACKUP_KEEP_DAYS: 7
+      BACKUP_KEEP_WEEKS: 4
+      BACKUP_KEEP_MONTHS: 6
+      HEALTHCHECK_PORT: 8080
+
   backend:
     build: ./backend
     restart: unless-stopped
@@ -36,6 +59,10 @@ services:
       CORS_ORIGIN: ${PUBLIC_ORIGIN:-https://localhost:8443}
       ADMIN_EMAIL: ${ADMIN_EMAIL:-admin@ropa.local}
       ADMIN_PASSWORD: ${ADMIN_PASSWORD:-ChangeMe123!}
+      UPLOAD_DIR: /app/uploads
+      MAX_UPLOAD_SIZE_MB: ${MAX_UPLOAD_SIZE_MB:-10}
+    volumes:
+      - uploads:/app/uploads
 
   frontend:
     build: ./frontend
@@ -91,3 +118,4 @@ services:
 volumes:
   postgres_data:
   certs:
+  uploads:

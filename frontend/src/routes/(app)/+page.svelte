@@ -20,7 +20,8 @@
     department: { nameTh: string; nameEn: string; nameZh: string };
   }
 
-  let records = $state<RopaRecord[]>([]);
+  let recent = $state<RopaRecord[]>([]);
+  let counts = $state({ total: 0, DRAFT: 0, SUBMITTED: 0, APPROVED: 0, REJECTED: 0 });
   let loading = $state(true);
   const canReadRopa = $derived(
     data.user.permissions.includes('ropa.read_own') || data.user.permissions.includes('ropa.read_all')
@@ -32,26 +33,26 @@
       return;
     }
     try {
-      const res = await apiFetch<{ records: RopaRecord[] }>('/ropa');
-      records = res.records;
+      const [statsRes, listRes] = await Promise.all([
+        apiFetch<{ total: number; byStatus: Record<string, number> }>('/ropa/stats'),
+        apiFetch<{ records: RopaRecord[] }>('/ropa?page=1&pageSize=5'),
+      ]);
+      counts = {
+        total: statsRes.total,
+        DRAFT: statsRes.byStatus.DRAFT ?? 0,
+        SUBMITTED: statsRes.byStatus.SUBMITTED ?? 0,
+        APPROVED: statsRes.byStatus.APPROVED ?? 0,
+        REJECTED: statsRes.byStatus.REJECTED ?? 0,
+      };
+      recent = listRes.records;
     } finally {
       loading = false;
     }
   });
 
-  const counts = $derived({
-    total: records.length,
-    DRAFT: records.filter((r) => r.status === 'DRAFT').length,
-    SUBMITTED: records.filter((r) => r.status === 'SUBMITTED').length,
-    APPROVED: records.filter((r) => r.status === 'APPROVED').length,
-    REJECTED: records.filter((r) => r.status === 'REJECTED').length,
-  });
-
   function deptName(r: RopaRecord) {
     return $locale === 'th' ? r.department.nameTh : $locale === 'zh' ? r.department.nameZh : r.department.nameEn;
   }
-
-  const recent = $derived(records.slice(0, 5));
 </script>
 
 <div class="flex flex-col gap-6">

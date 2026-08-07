@@ -104,6 +104,8 @@ model User {
   createdRecords   RopaRecord[]   @relation("RopaCreatedBy")
   updatedRecords   RopaRecord[]   @relation("RopaUpdatedBy")
   approvedRecords  RopaRecord[]   @relation("RopaApprovedBy")
+  uploadedAttachments RopaAttachment[]
+  notifications       Notification[]
 
   @@map("users")
 }
@@ -179,8 +181,43 @@ model RopaRecord {
   createdBy  User       @relation("RopaCreatedBy", fields: [createdById], references: [id])
   updatedBy  User?      @relation("RopaUpdatedBy", fields: [updatedById], references: [id])
   approvedBy User?      @relation("RopaApprovedBy", fields: [approvedById], references: [id])
+  attachments RopaAttachment[]
 
   @@map("ropa_records")
+}
+
+model RopaAttachment {
+  id           String   @id @default(uuid())
+  ropaRecordId String
+  fileName     String
+  storedName   String
+  mimeType     String
+  sizeBytes    Int
+  uploadedById String?
+  createdAt    DateTime @default(now())
+
+  ropaRecord RopaRecord @relation(fields: [ropaRecordId], references: [id], onDelete: Cascade)
+  uploadedBy User?      @relation(fields: [uploadedById], references: [id], onDelete: SetNull)
+
+  @@map("ropa_attachments")
+  @@index([ropaRecordId])
+}
+
+model Notification {
+  id         String   @id @default(uuid())
+  userId     String
+  type       String
+  entityType String
+  entityId   String?
+  metadata   Json?
+  isRead     Boolean  @default(false)
+  createdAt  DateTime @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("notifications")
+  @@index([userId, isRead])
+  @@index([createdAt])
 }
 
 model AuditLog {

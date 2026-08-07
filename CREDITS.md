@@ -28,7 +28,9 @@ including (not exhaustive — see `backend/package.json` and
 [jsonwebtoken](https://github.com/auth0/node-jsonwebtoken),
 [zod](https://zod.dev/), [express-rate-limit](https://github.com/express-rate-limit/express-rate-limit),
 [helmet](https://helmetjs.github.io/), [ExcelJS](https://github.com/exceljs/exceljs),
-[PDFKit](https://pdfkit.org/).
+[PDFKit](https://pdfkit.org/), [multer](https://github.com/expressjs/multer)
+(file uploads), [Vitest](https://vitest.dev/) +
+[supertest](https://github.com/ladjs/supertest) (integration tests).
 
 **Frontend** — [SvelteKit](https://kit.svelte.dev/),
 [Tailwind CSS](https://tailwindcss.com/), [Vite](https://vitejs.dev/).
@@ -38,4 +40,6 @@ including (not exhaustive — see `backend/package.json` and
 [GitHub Actions](https://github.com/features/actions),
 [CodeQL](https://codeql.github.com/), [Trivy](https://aquasecurity.github.io/trivy/),
 [gitleaks](https://github.com/gitleaks/gitleaks),
+[postgres-backup-local](https://github.com/prodrigestivill/docker-postgres-backup-local)
+(automated nightly `pg_dump` with rotation),
 [Claude Code](https://claude.com/claude-code).

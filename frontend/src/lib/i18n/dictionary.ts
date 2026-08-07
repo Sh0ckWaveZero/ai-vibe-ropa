@@ -25,6 +25,9 @@ export interface Dictionary {
     saved: string;
     error: string;
     view: string;
+    previous: string;
+    next: string;
+    paginationSummary: string;
   };
   nav: {
     dashboard: string;
@@ -136,6 +139,14 @@ export interface Dictionary {
     exportDateTo: string;
     exportAllDepartments: string;
     downloadButton: string;
+    attachmentsTitle: string;
+    attachmentUpload: string;
+    attachmentUploading: string;
+    attachmentNone: string;
+    attachmentUploadedBy: string;
+    attachmentDeleteConfirm: string;
+    attachmentAllowedTypes: string;
+    cloneRecord: string;
   };
   users: {
     title: string;
@@ -201,6 +212,20 @@ export interface Dictionary {
     who: string;
     action: string;
     entity: string;
+    filterEntityType: string;
+    filterAction: string;
+    actionPlaceholder: string;
+    dateFrom: string;
+    dateTo: string;
+  };
+  notifications: {
+    title: string;
+    empty: string;
+    markAllRead: string;
+    submitted: string;
+    approved: string;
+    rejected: string;
+    rejectedWithReason: string;
   };
   theme: {
     light: string;

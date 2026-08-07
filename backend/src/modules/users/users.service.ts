@@ -1,6 +1,7 @@
 import { prisma } from '../../db/prisma.js';
 import { hashPassword, comparePassword } from '../../utils/password.js';
 import { AppError } from '../../utils/AppError.js';
+import { computeDiff } from '../../utils/diff.js';
 
 const userSummarySelect = {
   id: true,
@@ -17,11 +18,19 @@ const userSummarySelect = {
   department: { select: { id: true, code: true, nameTh: true, nameEn: true, nameZh: true } },
 } as const;
 
-export async function listUsers() {
-  return prisma.user.findMany({
-    select: userSummarySelect,
-    orderBy: { createdAt: 'asc' },
-  });
+export async function listUsers(pagination?: { page: number; pageSize: number }) {
+  const [users, total] = await Promise.all([
+    prisma.user.findMany({
+      select: userSummarySelect,
+      orderBy: { createdAt: 'asc' },
+      ...(pagination
+        ? { skip: (pagination.page - 1) * pagination.pageSize, take: pagination.pageSize }
+        : {}),
+    }),
+    prisma.user.count(),
+  ]);
+
+  return pagination ? { users, total, page: pagination.page, pageSize: pagination.pageSize } : { users, total };
 }
 
 export async function createUser(input: {
@@ -65,11 +74,15 @@ export async function updateUser(
   const user = await prisma.user.findUnique({ where: { id } });
   if (!user) throw AppError.notFound('User not found');
 
-  return prisma.user.update({
+  const changes = computeDiff(user, input);
+
+  const updated = await prisma.user.update({
     where: { id },
     data: input,
     select: userSummarySelect,
   });
+
+  return { user: updated, changes };
 }
 
 export async function resetPassword(id: string, newPassword: string) {

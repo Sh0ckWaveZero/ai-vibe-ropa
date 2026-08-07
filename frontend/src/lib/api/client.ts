@@ -81,8 +81,12 @@ export async function apiFetch<T = unknown>(path: string, init: RequestInit = {}
   const method = (init.method ?? 'GET').toUpperCase();
 
   const request = async () => {
+    // FormData bodies (file uploads) must NOT get an explicit Content-Type —
+    // the browser sets its own multipart boundary, and overriding it here
+    // would corrupt the request.
+    const isFormData = init.body instanceof FormData;
     const headers: Record<string, string> = {
-      ...(init.body ? { 'Content-Type': 'application/json' } : {}),
+      ...(init.body && !isFormData ? { 'Content-Type': 'application/json' } : {}),
       ...(init.headers as Record<string, string> | undefined),
     };
     if (MUTATING_METHODS.has(method)) {

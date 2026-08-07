@@ -134,3 +134,10 @@ dist
 .yarn/build-state.yml
 .yarn/install-state.gz
 .pnp.*
+
+# Postgres backup dumps (docker-compose `backup` service) — real data, never committed
+/backups/
+
+# ROPA record attachments — real uploaded files, never committed
+/backend/uploads/
+/backend/uploads-test/

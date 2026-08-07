@@ -3,6 +3,9 @@
   import { getLocaleContext } from '$lib/i18n';
   import { apiFetch } from '$lib/api/client';
   import Card from '$lib/components/ui/Card.svelte';
+  import Input from '$lib/components/ui/Input.svelte';
+  import Select from '$lib/components/ui/Select.svelte';
+  import Pagination from '$lib/components/ui/Pagination.svelte';
 
   const { t } = getLocaleContext();
 
@@ -16,20 +19,86 @@
   }
 
   let logs = $state<AuditEntry[]>([]);
+  let entityTypes = $state<string[]>([]);
   let loading = $state(true);
+  let entityTypeFilter = $state('');
+  let actionFilter = $state('');
+  let dateFrom = $state('');
+  let dateTo = $state('');
+  let page = $state(1);
+  const pageSize = 20;
+  let total = $state(0);
 
-  onMount(async () => {
+  async function load() {
+    loading = true;
     try {
-      const res = await apiFetch<{ logs: AuditEntry[] }>('/audit?take=100');
+      const params = new URLSearchParams();
+      if (entityTypeFilter) params.set('entityType', entityTypeFilter);
+      if (actionFilter) params.set('action', actionFilter);
+      if (dateFrom) params.set('createdFrom', dateFrom);
+      if (dateTo) params.set('createdTo', dateTo);
+      params.set('page', String(page));
+      params.set('pageSize', String(pageSize));
+      const res = await apiFetch<{ logs: AuditEntry[]; total: number }>(`/audit?${params.toString()}`);
       logs = res.logs;
+      total = res.total;
     } finally {
       loading = false;
     }
+  }
+
+  function loadFromFilterChange() {
+    page = 1;
+    load();
+  }
+
+  function onPageChange(nextPage: number) {
+    page = nextPage;
+    load();
+  }
+
+  let actionTimeout: ReturnType<typeof setTimeout>;
+  function onActionInput() {
+    clearTimeout(actionTimeout);
+    actionTimeout = setTimeout(loadFromFilterChange, 300);
+  }
+
+  onMount(async () => {
+    const res = await apiFetch<{ entityTypes: string[] }>('/audit/entity-types');
+    entityTypes = res.entityTypes;
+    await load();
   });
 </script>
 
 <div class="flex flex-col gap-4">
   <h1 class="text-lg font-semibold text-body">{$t('audit.title')}</h1>
+
+  <Card>
+    <div class="flex flex-wrap items-end gap-3">
+      <div class="min-w-56 flex-1">
+        <Input
+          label={$t('audit.filterAction')}
+          bind:value={actionFilter}
+          oninput={onActionInput}
+          placeholder={$t('audit.actionPlaceholder')}
+        />
+      </div>
+      <div class="w-56">
+        <Select label={$t('audit.filterEntityType')} bind:value={entityTypeFilter} onchange={loadFromFilterChange}>
+          <option value="">{$t('common.all')}</option>
+          {#each entityTypes as et (et)}
+            <option value={et}>{et}</option>
+          {/each}
+        </Select>
+      </div>
+      <div class="w-40">
+        <Input type="date" label={$t('audit.dateFrom')} bind:value={dateFrom} onchange={loadFromFilterChange} />
+      </div>
+      <div class="w-40">
+        <Input type="date" label={$t('audit.dateTo')} bind:value={dateTo} onchange={loadFromFilterChange} />
+      </div>
+    </div>
+  </Card>
 
   <Card>
     {#if loading}
@@ -59,6 +128,7 @@
           </tbody>
         </table>
       </div>
+      <Pagination {page} {pageSize} {total} onChange={onPageChange} />
     {/if}
   </Card>
 </div>

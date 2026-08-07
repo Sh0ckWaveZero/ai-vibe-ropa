@@ -14,6 +14,7 @@ import rolesRoutes from './modules/roles/roles.routes.js';
 import departmentsRoutes from './modules/departments/departments.routes.js';
 import ropaRoutes from './modules/ropa/ropa.routes.js';
 import auditRoutes from './modules/audit/audit.routes.js';
+import notificationsRoutes from './modules/notifications/notifications.routes.js';
 
 export function createApp() {
   const app = express();
@@ -42,6 +43,7 @@ export function createApp() {
   app.use('/api/departments', departmentsRoutes);
   app.use('/api/ropa', ropaRoutes);
   app.use('/api/audit', auditRoutes);
+  app.use('/api/notifications', notificationsRoutes);
 
   app.use(notFoundHandler);
   app.use(errorHandler);

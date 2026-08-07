@@ -5,7 +5,8 @@
 รองรับการแบ่งข้อมูลตามหน่วยงาน มีขั้นตอนอนุมัติแบบ แบบร่าง → ส่งขออนุมัติ →
 อนุมัติ/ตีกลับ กำหนดสิทธิ์การใช้งานด้วยตารางสิทธิ์ (permission matrix)
 ที่แก้ไขได้จากหน้าเว็บ, บังคับยืนยันตัวตนสองขั้นตอน (2FA) ทุกบัญชี, เสิร์ฟผ่าน
-HTTPS เสมอ และรองรับ 3 ภาษา: ไทย / อังกฤษ / จีน
+HTTPS เสมอ, แนบไฟล์ประกอบและแจ้งเตือนในระบบได้, สำรองข้อมูลอัตโนมัติทุกคืน
+และรองรับ 3 ภาษา: ไทย / อังกฤษ / จีน
 
 ## 🛠️ เทคโนโลยีที่ใช้
 
@@ -129,7 +130,26 @@ Authenticator หรือ Authy) ก่อนเข้าใช้งานไ�
 อนุมัติแล้ว (APPROVED)` หรือ `ถูกตีกลับ (REJECTED)` ซึ่งจะกลับไปแก้ไขได้อีกครั้ง
 ผู้บันทึกข้อมูลหน่วยงานสร้าง/แก้ไขแบบร่างและส่งขออนุมัติ ส่วนผู้ที่มีสิทธิ์
 `ropa.approve` (เช่นบทบาท DPO) จะเป็นผู้อนุมัติหรือตีกลับพร้อมระบุเหตุผล
-ทุกการกระทำจะถูกบันทึกลงประวัติการใช้งาน (audit log) โดยอัตโนมัติ
+ทุกการกระทำจะถูกบันทึกลงประวัติการใช้งาน (audit log) โดยอัตโนมัติ พร้อมบันทึก
+**การเปลี่ยนแปลงแต่ละฟิลด์แบบก่อน/หลัง (diff)** ให้ตรวจสอบย้อนหลังได้
+
+จากหน้ารายละเอียด ROPA ผู้ที่มีสิทธิ์ `ropa.create` กดปุ่ม **"ทำสำเนาเป็นรายการใหม่"**
+เพื่อคัดลอกข้อมูลทั้งหมดของรายการที่เปิดอยู่ไปเป็นฐานของรายการใหม่ (สถานะเริ่มต้นเป็น
+แบบร่างเสมอ ไม่ว่ารายการต้นทางจะอยู่สถานะใด) — ใช้ endpoint และการตรวจสิทธิ์ชุด
+เดียวกับหน้าอ่านข้อมูลปกติ ไม่มีช่องทางลัดผ่านการตรวจสอบสิทธิ์
+
+## 📎 ไฟล์แนบและการแจ้งเตือน
+
+แต่ละรายการ ROPA สามารถแนบไฟล์ประกอบได้ (PDF, Word, Excel, CSV/TXT, รูปภาพ —
+ขนาดไม่เกิน `MAX_UPLOAD_SIZE_MB`, ค่าเริ่มต้น 10MB) จากหน้ารายละเอียดรายการ
+สิทธิ์ในการอัปโหลด/ลบไฟล์แนบใช้กฎเดียวกับการแก้ไขฟิลด์ (แบบร่าง/ถูกตีกลับเท่านั้น
+เว้นแต่มีสิทธิ์ `ropa.update_all`) ไฟล์จะถูกจัดเก็บด้วยชื่อที่ระบบสุ่มขึ้นเอง
+(ไม่ใช้ชื่อไฟล์ที่ผู้ใช้ตั้ง) และดาวน์โหลดกลับมาเป็น `application/octet-stream`
+เสมอ เพื่อไม่ให้เบราว์เซอร์แสดงผลไฟล์แบบ inline
+
+เมื่อมีการส่งขออนุมัติ ผู้มีสิทธิ์ `ropa.approve` ทุกคนจะได้รับ**การแจ้งเตือนในระบบ**
+(ไอคอนกระดิ่งที่แถบบนของทุกหน้า) และเมื่ออนุมัติ/ตีกลับ ผู้สร้างรายการจะได้รับแจ้งเตือน
+กลับเช่นกัน (ยกเว้นกรณีอนุมัติ/ส่งรายการของตนเอง ระบบจะไม่แจ้งเตือนตัวเอง)
 
 ## 📤 ส่งออกข้อมูล (Excel / PDF)
 
@@ -179,19 +199,24 @@ npm run dev              # http://localhost:5173, proxy /api ไปที่ :40
 
 ```
 backend/
-  prisma/schema.prisma       โมเดลข้อมูล (users, roles, permissions, departments, ropa_records, backup_codes, audit_logs)
-  src/modules/                 1 โฟลเดอร์ต่อ 1 resource: auth, users, roles, departments, ropa, audit
+  prisma/schema.prisma       โมเดลข้อมูล (users, roles, permissions, departments, ropa_records,
+                              ropa_attachments, notifications, backup_codes, audit_logs)
+  src/modules/                 1 โฟลเดอร์ต่อ 1 resource: auth, users, roles, departments, ropa
+                              (+ attachments.routes/service.ts ในโฟลเดอร์เดียวกัน), audit, notifications
   src/middleware/               requireAuth / requireAnyPermission / requirePreAuth (ขั้น 2FA) / rateLimit
   src/utils/totp.ts             เข้ารหัส/ตรวจรหัส TOTP + สร้าง QR code
   src/utils/backupCodes.ts      สร้าง/ตรวจ/เก็บรหัสสำรอง (bcrypt hash, ใช้ครั้งเดียว)
   src/utils/exportExcel.ts       สร้างไฟล์ .xlsx (ป้องกัน formula injection)
   src/utils/exportPdf.ts         สร้าง PDF สรุปข้อมูล
+  src/utils/diff.ts              เทียบค่าก่อน/หลังสำหรับบันทึกลง audit log
   src/db/seed/                   สร้างบทบาท/สิทธิ์/หน่วยงาน/แอดมินเริ่มต้น
+  src/__tests__/                 ชุดทดสอบ Vitest + supertest (รันจริงกับ Postgres)
 frontend/
   src/routes/(app)/             ส่วนของแอปที่ต้องล็อกอิน (sidebar/topbar) + หน้าต่าง ๆ
   src/routes/login/             เข้าสู่ระบบ + ขั้นตอน 2FA (setup-2fa, verify-2fa, backup-codes)
   src/lib/i18n/                  ไฟล์คำแปล th/en/zh และ locale context
-  src/lib/components/            UI ที่ใช้ร่วมกัน (Button, Card, Dialog, TagInput, ...) และฟอร์ม ROPA
+  src/lib/components/            UI ที่ใช้ร่วมกัน (Button, Card, Dialog, Pagination, TagInput, ...),
+                              NotificationBell, และฟอร์ม ROPA
 nginx/
   nginx.conf                    main config (include conf.d/*.conf)
   templates/default.conf.template  HTTP→HTTPS redirect + HTTPS reverse proxy (envsubst ตอน container start)

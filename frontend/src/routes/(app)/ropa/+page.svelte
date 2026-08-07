@@ -9,6 +9,7 @@
   import Input from '$lib/components/ui/Input.svelte';
   import Select from '$lib/components/ui/Select.svelte';
   import Dialog from '$lib/components/ui/Dialog.svelte';
+  import Pagination from '$lib/components/ui/Pagination.svelte';
   import type { PageData } from './$types';
 
   let { data }: { data: PageData } = $props();
@@ -42,6 +43,9 @@
   let search = $state('');
   let statusFilter = $state('');
   let departmentFilter = $state('');
+  let page = $state(1);
+  const pageSize = 20;
+  let total = $state(0);
 
   function deptName(d: { nameTh: string; nameEn: string; nameZh: string }) {
     return $locale === 'th' ? d.nameTh : $locale === 'zh' ? d.nameZh : d.nameEn;
@@ -54,11 +58,24 @@
       if (search) params.set('search', search);
       if (statusFilter) params.set('status', statusFilter);
       if (departmentFilter) params.set('departmentId', departmentFilter);
-      const res = await apiFetch<{ records: RopaRecord[] }>(`/ropa?${params.toString()}`);
+      params.set('page', String(page));
+      params.set('pageSize', String(pageSize));
+      const res = await apiFetch<{ records: RopaRecord[]; total: number }>(`/ropa?${params.toString()}`);
       records = res.records;
+      total = res.total;
     } finally {
       loading = false;
     }
+  }
+
+  function loadFromFilterChange() {
+    page = 1;
+    load();
+  }
+
+  function onPageChange(nextPage: number) {
+    page = nextPage;
+    load();
   }
 
   onMount(async () => {
@@ -72,7 +89,7 @@
   let searchTimeout: ReturnType<typeof setTimeout>;
   function onSearchInput() {
     clearTimeout(searchTimeout);
-    searchTimeout = setTimeout(load, 300);
+    searchTimeout = setTimeout(loadFromFilterChange, 300);
   }
 
   let exportOpen = $state(false);
@@ -126,7 +143,7 @@
         />
       </div>
       <div class="w-44">
-        <Select label={$t('common.filter')} bind:value={statusFilter} onchange={load}>
+        <Select label={$t('common.filter')} bind:value={statusFilter} onchange={loadFromFilterChange}>
           <option value="">{$t('common.all')}</option>
           {#each STATUSES as s (s)}
             <option value={s}>{$t(`status.${s}`)}</option>
@@ -135,7 +152,7 @@
       </div>
       {#if canReadAll}
         <div class="w-56">
-          <Select label={$t('ropa.department')} bind:value={departmentFilter} onchange={load}>
+          <Select label={$t('ropa.department')} bind:value={departmentFilter} onchange={loadFromFilterChange}>
             <option value="">{$t('common.all')}</option>
             {#each departments as d (d.id)}
               <option value={d.id}>{deptName(d)}</option>
@@ -182,6 +199,7 @@
           </tbody>
         </table>
       </div>
+      <Pagination {page} {pageSize} {total} onChange={onPageChange} />
     {/if}
   </Card>
 </div>

@@ -9,6 +9,7 @@
   import Select from '$lib/components/ui/Select.svelte';
   import Checkbox from '$lib/components/ui/Checkbox.svelte';
   import Dialog from '$lib/components/ui/Dialog.svelte';
+  import Pagination from '$lib/components/ui/Pagination.svelte';
 
   const { t, locale } = getLocaleContext();
 
@@ -43,6 +44,9 @@
   let roles = $state<RoleOption[]>([]);
   let departments = $state<DeptOption[]>([]);
   let loading = $state(true);
+  let page = $state(1);
+  const pageSize = 20;
+  let total = $state(0);
 
   function label(item: { nameTh: string; nameEn: string; nameZh: string }) {
     return $locale === 'th' ? item.nameTh : $locale === 'zh' ? item.nameZh : item.nameEn;
@@ -52,16 +56,22 @@
     loading = true;
     try {
       const [u, r, d] = await Promise.all([
-        apiFetch<{ users: UserRow[] }>('/users'),
+        apiFetch<{ users: UserRow[]; total: number }>(`/users?page=${page}&pageSize=${pageSize}`),
         apiFetch<{ roles: RoleOption[] }>('/roles'),
         apiFetch<{ departments: DeptOption[] }>('/departments'),
       ]);
       users = u.users;
+      total = u.total;
       roles = r.roles;
       departments = d.departments;
     } finally {
       loading = false;
     }
+  }
+
+  function onPageChange(nextPage: number) {
+    page = nextPage;
+    loadAll();
   }
 
   onMount(loadAll);
@@ -229,6 +239,7 @@
           </tbody>
         </table>
       </div>
+      <Pagination {page} {pageSize} {total} onChange={onPageChange} />
     {/if}
   </Card>
 </div>

@@ -5,7 +5,7 @@
   import { getLocaleContext } from '$lib/i18n';
   import { apiFetch, ApiError } from '$lib/api/client';
   import { STATUS_COLORS } from '$lib/constants/status';
-  import RopaForm, { type RopaFormValue } from '$lib/components/ropa/RopaForm.svelte';
+  import RopaForm, { type RopaFormValue, toRopaFormValue } from '$lib/components/ropa/RopaForm.svelte';
   import Card from '$lib/components/ui/Card.svelte';
   import Badge from '$lib/components/ui/Badge.svelte';
   import Button from '$lib/components/ui/Button.svelte';
@@ -22,6 +22,15 @@
     nameTh: string;
     nameEn: string;
     nameZh: string;
+  }
+
+  interface Attachment {
+    id: string;
+    fileName: string;
+    mimeType: string;
+    sizeBytes: number;
+    createdAt: string;
+    uploadedBy: { id: string; fullName: string } | null;
   }
 
   interface RopaRecord {
@@ -76,28 +85,16 @@
   let rejectionReason = $state('');
   let actionLoading = $state(false);
 
+  let attachments = $state<Attachment[]>([]);
+  let attachmentsLoading = $state(true);
+  let uploading = $state(false);
+  let uploadError = $state('');
+  let deleteAttachmentDialog = $state(false);
+  let deleteAttachmentTarget = $state<Attachment | null>(null);
+  let fileInputEl = $state<HTMLInputElement | null>(null);
+
   function toForm(r: RopaRecord): RopaFormValue {
-    return {
-      departmentId: r.departmentId,
-      activityName: r.activityName,
-      purpose: r.purpose,
-      legalBasis: r.legalBasis,
-      controllerName: r.controllerName,
-      jointController: r.jointController ?? '',
-      dataSubjectCategories: r.dataSubjectCategories,
-      dataCategories: r.dataCategories,
-      sensitiveDataCategories: r.sensitiveDataCategories,
-      collectionSource: r.collectionSource,
-      recipients: r.recipients,
-      hasCrossBorderTransfer: r.hasCrossBorderTransfer,
-      crossBorderDestination: r.crossBorderDestination ?? '',
-      crossBorderSafeguards: r.crossBorderSafeguards ?? '',
-      retentionPeriod: r.retentionPeriod,
-      disposalMethod: r.disposalMethod,
-      securityMeasures: r.securityMeasures,
-      dpoContact: r.dpoContact ?? '',
-      remarks: r.remarks ?? '',
-    };
+    return toRopaFormValue(r);
   }
 
   function nullableOrNull(value: string): string | null {
@@ -118,19 +115,78 @@
     }
   }
 
+  async function loadAttachments() {
+    attachmentsLoading = true;
+    try {
+      const res = await apiFetch<{ attachments: Attachment[] }>(`/ropa/${recordId}/attachments`);
+      attachments = res.attachments;
+    } finally {
+      attachmentsLoading = false;
+    }
+  }
+
   onMount(async () => {
     const [, deptRes] = await Promise.all([
       loadRecord(),
       apiFetch<{ departments: Department[] }>('/departments'),
+      loadAttachments(),
     ]);
     departments = deptRes.departments;
   });
+
+  function formatFileSize(bytes: number): string {
+    if (bytes < 1024) return `${bytes} B`;
+    if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`;
+    return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
+  }
+
+  async function onFileSelected(e: Event) {
+    const input = e.currentTarget as HTMLInputElement;
+    const file = input.files?.[0];
+    if (!file) return;
+
+    uploading = true;
+    uploadError = '';
+    try {
+      const formData = new FormData();
+      formData.append('file', file);
+      const res = await apiFetch<{ attachment: Attachment }>(`/ropa/${recordId}/attachments`, {
+        method: 'POST',
+        body: formData,
+      });
+      attachments = [res.attachment, ...attachments];
+    } catch (err) {
+      uploadError = err instanceof ApiError ? err.message : $t('common.error');
+    } finally {
+      uploading = false;
+      input.value = '';
+    }
+  }
+
+  function openDeleteAttachment(a: Attachment) {
+    deleteAttachmentTarget = a;
+    deleteAttachmentDialog = true;
+  }
+
+  async function confirmDeleteAttachment() {
+    if (!deleteAttachmentTarget) return;
+    const target = deleteAttachmentTarget;
+    actionLoading = true;
+    try {
+      await apiFetch(`/ropa/${recordId}/attachments/${target.id}`, { method: 'DELETE' });
+      attachments = attachments.filter((a) => a.id !== target.id);
+      deleteAttachmentDialog = false;
+    } finally {
+      actionLoading = false;
+    }
+  }
 
   const canUpdateAll = perms.includes('ropa.update_all');
   const canUpdateOwn = perms.includes('ropa.update_own');
   const canSubmit = perms.includes('ropa.submit');
   const canApprove = perms.includes('ropa.approve');
   const canDelete = perms.includes('ropa.delete');
+  const canCreate = perms.includes('ropa.create');
 
   const isEditable = $derived.by(() => {
     if (!record) return false;
@@ -268,6 +324,11 @@
           <Button onclick={onSaveEdit} loading={saving}>{$t('common.save')}</Button>
         {:else}
           <Button variant="secondary" onclick={() => goto('/ropa')}>{$t('common.back')}</Button>
+          {#if canCreate}
+            <Button variant="secondary" onclick={() => goto(`/ropa/new?cloneFrom=${recordId}`)}>
+              {$t('ropa.cloneRecord')}
+            </Button>
+          {/if}
           {#if isEditable}
             <Button variant="secondary" onclick={() => (editing = true)}>{$t('common.edit')}</Button>
           {/if}
@@ -317,6 +378,66 @@
       </div>
     </Card>
 
+    <Card title={$t('ropa.attachmentsTitle')}>
+      {#snippet actions()}
+        {#if isEditable}
+          <div class="flex items-center gap-2">
+            <input
+              bind:this={fileInputEl}
+              type="file"
+              class="hidden"
+              onchange={onFileSelected}
+              accept=".pdf,.doc,.docx,.xls,.xlsx,.csv,.txt,.png,.jpg,.jpeg"
+            />
+            <Button variant="secondary" loading={uploading} onclick={() => fileInputEl?.click()}>
+              {uploading ? $t('ropa.attachmentUploading') : $t('ropa.attachmentUpload')}
+            </Button>
+          </div>
+        {/if}
+      {/snippet}
+
+      {#if isEditable}
+        <p class="mb-3 text-xs text-muted">{$t('ropa.attachmentAllowedTypes', { size: 10 })}</p>
+      {/if}
+
+      {#if uploadError}
+        <p class="mb-3 text-sm text-red-600">{uploadError}</p>
+      {/if}
+
+      {#if attachmentsLoading}
+        <p class="text-sm text-muted">{$t('common.loading')}</p>
+      {:else if attachments.length === 0}
+        <p class="text-sm text-muted">{$t('ropa.attachmentNone')}</p>
+      {:else}
+        <ul class="flex flex-col gap-2">
+          {#each attachments as a (a.id)}
+            <li class="flex items-center justify-between gap-3 rounded-md border border-border px-3 py-2 text-sm">
+              <div class="min-w-0 flex-1">
+                <a
+                  href={`/api/ropa/${recordId}/attachments/${a.id}/download`}
+                  class="truncate font-medium text-primary hover:underline"
+                >
+                  {a.fileName}
+                </a>
+                <p class="text-xs text-muted">
+                  {formatFileSize(a.sizeBytes)} · {$t('ropa.attachmentUploadedBy')} {a.uploadedBy?.fullName ?? '-'} ·
+                  {new Date(a.createdAt).toLocaleString()}
+                </p>
+              </div>
+              {#if isEditable}
+                <button
+                  class="shrink-0 text-red-600 hover:underline"
+                  onclick={() => openDeleteAttachment(a)}
+                >
+                  {$t('common.delete')}
+                </button>
+              {/if}
+            </li>
+          {/each}
+        </ul>
+      {/if}
+    </Card>
+
     <RopaForm bind:value={form} {departments} disabled={!editing} lockDepartment={!canUpdateAll} />
   </div>
 
@@ -354,6 +475,14 @@
     {#snippet footer()}
       <Button variant="secondary" onclick={() => (deleteDialog = false)}>{$t('common.cancel')}</Button>
       <Button variant="danger" loading={actionLoading} onclick={doDelete}>{$t('common.delete')}</Button>
+    {/snippet}
+  </Dialog>
+
+  <Dialog bind:open={deleteAttachmentDialog} title={$t('common.confirmDeleteTitle')}>
+    <p class="text-muted">{$t('ropa.attachmentDeleteConfirm')}</p>
+    {#snippet footer()}
+      <Button variant="secondary" onclick={() => (deleteAttachmentDialog = false)}>{$t('common.cancel')}</Button>
+      <Button variant="danger" loading={actionLoading} onclick={confirmDeleteAttachment}>{$t('common.delete')}</Button>
     {/snippet}
   </Dialog>
 {/if}

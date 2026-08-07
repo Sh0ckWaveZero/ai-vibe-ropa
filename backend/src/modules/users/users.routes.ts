@@ -10,12 +10,18 @@ import { logAudit } from '../../utils/audit.js';
 const router = Router();
 router.use(requireAuth);
 
+const listQuerySchema = z.object({
+  page: z.coerce.number().int().min(1).default(1),
+  pageSize: z.coerce.number().int().min(1).max(100).default(20),
+});
+
 router.get(
   '/',
   requireAnyPermission('users.manage'),
-  asyncHandler(async (_req, res) => {
-    const users = await usersService.listUsers();
-    res.json({ users });
+  asyncHandler(async (req, res) => {
+    const { page, pageSize } = listQuerySchema.parse(req.query);
+    const result = await usersService.listUsers({ page, pageSize });
+    res.json(result);
   })
 );
 
@@ -80,8 +86,8 @@ router.patch(
   requireAnyPermission('users.manage'),
   asyncHandler(async (req, res) => {
     const input = updateSchema.parse(req.body);
-    const user = await usersService.updateUser(req.params.id, input);
-    await logAudit({ userId: req.user!.id, action: 'user.update', entityType: 'User', entityId: user.id, metadata: input, req });
+    const { user, changes } = await usersService.updateUser(req.params.id, input);
+    await logAudit({ userId: req.user!.id, action: 'user.update', entityType: 'User', entityId: user.id, metadata: { changes }, req });
     res.json({ user });
   })
 );

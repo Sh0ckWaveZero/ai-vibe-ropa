@@ -17,6 +17,8 @@ const envSchema = z.object({
   CORS_ORIGIN: z.string().default('http://localhost:5173'),
   ADMIN_EMAIL: z.string().email().default('admin@ropa.local'),
   ADMIN_PASSWORD: z.string().min(8).default('ChangeMe123!'),
+  UPLOAD_DIR: z.string().default('./uploads'),
+  MAX_UPLOAD_SIZE_MB: z.coerce.number().default(10),
 });
 
 const parsed = envSchema.safeParse(process.env);
