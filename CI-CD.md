@@ -1,10 +1,16 @@
 # CI/CD pipeline
 
-Every push and pull request against `main` runs through
-[`.github/workflows/ci.yml`](../.github/workflows/ci.yml) and
-[`.github/workflows/claude-review.yml`](../.github/workflows/claude-review.yml).
-The pipeline is ordered **cheapest and fastest checks first** so a broken
-build or a leaked secret fails in seconds, not after a 5-minute Docker build.
+This file documents the pipeline; **the pipeline itself is code**, not
+markdown — it lives in [`.github/workflows/ci.yml`](.github/workflows/ci.yml)
+and [`.github/workflows/claude-review.yml`](.github/workflows/claude-review.yml).
+GitHub Actions only ever runs workflows from `.github/workflows/`, so that is
+the one place this automation *can* live; this file is the explanation
+sitting next to it, the same way `SECURITY.md` explains the security posture
+those workflows help enforce.
+
+Every push and pull request against `main` runs through both workflows. The
+pipeline is ordered **cheapest and fastest checks first** so a broken build
+or a leaked secret fails in seconds, not after a 5-minute Docker build.
 
 ```
 Wave 1 (parallel, seconds)        Wave 2 (parallel, ~1 min)         Wave 3 (last, ~2-3 min)

@@ -131,12 +131,27 @@ Authenticator หรือ Authy) ก่อนเข้าใช้งานไ�
 `ropa.approve` (เช่นบทบาท DPO) จะเป็นผู้อนุมัติหรือตีกลับพร้อมระบุเหตุผล
 ทุกการกระทำจะถูกบันทึกลงประวัติการใช้งาน (audit log) โดยอัตโนมัติ
 
+## 📤 ส่งออกข้อมูล (Excel / PDF)
+
+จากหน้า **บันทึก ROPA** ผู้ที่มีสิทธิ์ `ropa.export` กดปุ่ม **ส่งออก** เพื่อเลือก:
+
+- **รูปแบบไฟล์**: Excel (.xlsx) ข้อมูลครบทุกฟิลด์ หรือ PDF สรุปข้อมูล (จำนวนตามสถานะ +
+  ตารางรายการ)
+- **หน่วยงาน**: หน่วยงานเดียว หรือ "ทุกหน่วยงาน" (จะเห็นได้ตามสิทธิ์ที่มีอยู่แล้ว —
+  ถ้าไม่มี `ropa.read_all` ระบบจะจำกัดเฉพาะหน่วยงานตนเองให้อัตโนมัติ ต่อให้ส่ง
+  พารามิเตอร์อื่นมาก็ตาม)
+- **สถานะ** และ **ช่วงวันที่สร้างรายการ** (ไม่บังคับ)
+
+ไฟล์ Excel มีการป้องกัน **CSV/Excel formula injection** (CWE-1236) — ข้อความที่
+ผู้ใช้กรอกเองแล้วขึ้นต้นด้วย `=`, `+`, `-`, `@` จะถูกใส่ `'` นำหน้าอัตโนมัติก่อนเขียนลง
+เซลล์ ป้องกันไม่ให้ Excel ตีความเป็นสูตรตอนเปิดไฟล์
+
 ## 🛡️ ความปลอดภัยและ CI/CD
 
 ทุก push/PR จะรันผ่านไปป์ไลน์อัตโนมัติ: ตรวจ secret รั่วไหล → build/typecheck →
 สแกน dependency (npm audit) + static analysis (CodeQL) → build image และสแกนด้วย
 Trivy → ให้ Claude อ่าน diff แล้วคอมเมนต์รีวิวความปลอดภัย/ความถูกต้องของโค้ด
-รายละเอียดทั้งหมดอยู่ที่ [`docs/ci-cd.md`](docs/ci-cd.md) และมาตรการความปลอดภัย
+รายละเอียดทั้งหมดอยู่ที่ [`CI-CD.md`](CI-CD.md) และมาตรการความปลอดภัย
 ที่ระบบใช้อยู่ตอนนี้อยู่ที่ [`SECURITY.md`](SECURITY.md)
 
 ## 💻 การพัฒนาในเครื่อง (ไม่ใช้ Docker ทั้งหมด)
@@ -169,6 +184,8 @@ backend/
   src/middleware/               requireAuth / requireAnyPermission / requirePreAuth (ขั้น 2FA) / rateLimit
   src/utils/totp.ts             เข้ารหัส/ตรวจรหัส TOTP + สร้าง QR code
   src/utils/backupCodes.ts      สร้าง/ตรวจ/เก็บรหัสสำรอง (bcrypt hash, ใช้ครั้งเดียว)
+  src/utils/exportExcel.ts       สร้างไฟล์ .xlsx (ป้องกัน formula injection)
+  src/utils/exportPdf.ts         สร้าง PDF สรุปข้อมูล
   src/db/seed/                   สร้างบทบาท/สิทธิ์/หน่วยงาน/แอดมินเริ่มต้น
 frontend/
   src/routes/(app)/             ส่วนของแอปที่ต้องล็อกอิน (sidebar/topbar) + หน้าต่าง ๆ
@@ -179,6 +196,7 @@ nginx/
   nginx.conf                    main config (include conf.d/*.conf)
   templates/default.conf.template  HTTP→HTTPS redirect + HTTPS reverse proxy (envsubst ตอน container start)
 .github/workflows/             ci.yml (build/scan pipeline) + claude-review.yml (Claude รีวิว PR)
-docs/ci-cd.md                  รายละเอียดไปป์ไลน์ CI/CD
+CI-CD.md                       รายละเอียดไปป์ไลน์ CI/CD (ไปป์ไลน์จริงอยู่ที่ .github/workflows/)
 SECURITY.md                    นโยบายความปลอดภัยและวิธีรายงานช่องโหว่
+CREDITS.md                     แหล่งที่มาของโค้ด/ไลบรารีที่อ้างอิงหรือดัดแปลงมา
 ```

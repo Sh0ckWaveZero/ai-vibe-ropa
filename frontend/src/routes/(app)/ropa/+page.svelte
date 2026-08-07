@@ -8,6 +8,7 @@
   import Button from '$lib/components/ui/Button.svelte';
   import Input from '$lib/components/ui/Input.svelte';
   import Select from '$lib/components/ui/Select.svelte';
+  import Dialog from '$lib/components/ui/Dialog.svelte';
   import type { PageData } from './$types';
 
   let { data }: { data: PageData } = $props();
@@ -33,6 +34,7 @@
 
   const canReadAll = data.user.permissions.includes('ropa.read_all');
   const canCreate = data.user.permissions.includes('ropa.create');
+  const canExport = data.user.permissions.includes('ropa.export');
 
   let records = $state<RopaRecord[]>([]);
   let departments = $state<Department[]>([]);
@@ -72,14 +74,45 @@
     clearTimeout(searchTimeout);
     searchTimeout = setTimeout(load, 300);
   }
+
+  let exportOpen = $state(false);
+  let exportFormat = $state('excel');
+  let exportDepartmentId = $state('');
+  let exportStatus = $state('');
+  let exportDateFrom = $state('');
+  let exportDateTo = $state('');
+
+  function openExport() {
+    exportFormat = 'excel';
+    exportDepartmentId = '';
+    exportStatus = '';
+    exportDateFrom = '';
+    exportDateTo = '';
+    exportOpen = true;
+  }
+
+  function runExport() {
+    const params = new URLSearchParams();
+    if (exportDepartmentId) params.set('departmentId', exportDepartmentId);
+    if (exportStatus) params.set('status', exportStatus);
+    if (exportDateFrom) params.set('createdFrom', exportDateFrom);
+    if (exportDateTo) params.set('createdTo', exportDateTo);
+    window.location.href = `/api/ropa/export/${exportFormat}?${params.toString()}`;
+    exportOpen = false;
+  }
 </script>
 
 <div class="flex flex-col gap-4">
   <div class="flex items-center justify-between">
     <h1 class="text-lg font-semibold text-body">{$t('ropa.title')}</h1>
-    {#if canCreate}
-      <Button onclick={() => (window.location.href = '/ropa/new')}>{$t('ropa.newRecord')}</Button>
-    {/if}
+    <div class="flex gap-2">
+      {#if canExport}
+        <Button variant="secondary" onclick={openExport}>{$t('common.export')}</Button>
+      {/if}
+      {#if canCreate}
+        <Button onclick={() => (window.location.href = '/ropa/new')}>{$t('ropa.newRecord')}</Button>
+      {/if}
+    </div>
   </div>
 
   <Card>
@@ -152,3 +185,34 @@
     {/if}
   </Card>
 </div>
+
+<Dialog bind:open={exportOpen} title={$t('ropa.exportTitle')}>
+  <div class="flex flex-col gap-3">
+    <Select label={$t('ropa.exportFormat')} bind:value={exportFormat}>
+      <option value="excel">{$t('ropa.exportFormatExcel')}</option>
+      <option value="pdf">{$t('ropa.exportFormatPdf')}</option>
+    </Select>
+    {#if canReadAll}
+      <Select label={$t('ropa.department')} bind:value={exportDepartmentId}>
+        <option value="">{$t('ropa.exportAllDepartments')}</option>
+        {#each departments as d (d.id)}
+          <option value={d.id}>{deptName(d)}</option>
+        {/each}
+      </Select>
+    {/if}
+    <Select label={$t('common.filter')} bind:value={exportStatus}>
+      <option value="">{$t('common.all')}</option>
+      {#each STATUSES as s (s)}
+        <option value={s}>{$t(`status.${s}`)}</option>
+      {/each}
+    </Select>
+    <div class="grid grid-cols-2 gap-3">
+      <Input type="date" label={$t('ropa.exportDateFrom')} bind:value={exportDateFrom} />
+      <Input type="date" label={$t('ropa.exportDateTo')} bind:value={exportDateTo} />
+    </div>
+  </div>
+  {#snippet footer()}
+    <Button variant="secondary" onclick={() => (exportOpen = false)}>{$t('common.cancel')}</Button>
+    <Button onclick={runExport}>{$t('ropa.downloadButton')}</Button>
+  {/snippet}
+</Dialog>

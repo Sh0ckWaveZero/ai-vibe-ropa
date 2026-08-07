@@ -128,6 +128,14 @@ export interface Dictionary {
     confirmApproveBody: string;
     confirmRejectTitle: string;
     searchPlaceholder: string;
+    exportTitle: string;
+    exportFormat: string;
+    exportFormatExcel: string;
+    exportFormatPdf: string;
+    exportDateFrom: string;
+    exportDateTo: string;
+    exportAllDepartments: string;
+    downloadButton: string;
   };
   users: {
     title: string;

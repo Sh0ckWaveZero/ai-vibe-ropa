@@ -27,7 +27,7 @@ branches; always deploy from the latest commit on `main`.
 | Injection | All database access goes through Prisma's parameterized query builder — no raw/interpolated SQL anywhere in the codebase. |
 | Secrets | Required via environment variables with no usable defaults (`docker-compose.yml` uses `${VAR:?...}` to refuse starting if a real secret isn't set). `.env` files are gitignored; see `.env.example` for what to generate (`openssl rand -hex 32`, etc.). |
 | Audit trail | Every sensitive action (login, 2FA setup/verify, record approval, permission changes, user/role edits, admin 2FA resets, ...) is written to `audit_logs` with the acting user, IP, and metadata. |
-| Automated scanning | Every push/PR runs secret scanning, dependency (SCA) scanning, static analysis (CodeQL), a Claude-driven code review, and a container image scan — see [`docs/ci-cd.md`](docs/ci-cd.md). |
+| Automated scanning | Every push/PR runs secret scanning, dependency (SCA) scanning, static analysis (CodeQL), a Claude-driven code review, and a container image scan — see [`CI-CD.md`](CI-CD.md). |
 
 ## Known limitations to address before a public/production deployment
 

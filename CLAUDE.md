@@ -199,8 +199,32 @@ names, so it can't collide with nginx variable syntax). If you add another
 `${SOME_VAR}` to the template, it must be set in the `nginx` service's
 `environment:` in `docker-compose.yml` or it substitutes to an empty string.
 
-**CI/CD.** `.github/workflows/ci.yml` and `claude-review.yml` run scans on
-every push/PR — see `docs/ci-cd.md` for the full pipeline order and
-`SECURITY.md` for the security posture this project claims. The Claude
-review job needs an `ANTHROPIC_API_KEY` (or `CLAUDE_CODE_OAUTH_TOKEN`) repo
+**CI/CD.** The actual pipeline is the code in `.github/workflows/ci.yml` and
+`claude-review.yml` — GitHub Actions only ever executes workflows from that
+exact directory, so that's where it has to live. `CI-CD.md` at the repo root
+is just the prose explanation of that pipeline (mirroring `SECURITY.md` for
+security posture) — don't confuse the doc for the automation itself when
+extending either. The Claude review job needs an `ANTHROPIC_API_KEY` (or
+`CLAUDE_CODE_OAUTH_TOKEN`) repo
 secret to actually post comments; without it the job just fails harmlessly.
+
+**Export routes reuse the list endpoint's scoping on purpose.**
+`GET /ropa/export/excel` and `GET /ropa/export/pdf` (`ropa.routes.ts`) both
+call `resolveExportScope()`, which delegates straight to
+`ropaService.listRopaRecords()` — the same function `GET /ropa` uses. This
+means a caller with `ropa.export` but not `ropa.read_all` gets exactly the
+same forced-to-own-department behavior as the list view for free; don't
+reimplement scoping in the export path. Like the users-routes gotcha above,
+`/export/excel` and `/export/pdf` are registered *before* `/:id` for the
+same reason — Express would otherwise swallow `/export` as an `:id`.
+
+**Excel cells get formula-injection-escaped; PDF cells don't, deliberately.**
+`src/utils/exportExcel.ts::safeCell()` prefixes a leading `=`/`+`/`-`/`@`/tab/CR
+with `'` before any free-text ROPA field (activity name, purpose, remarks,
+etc. — all user-authored) reaches a cell, since Excel/LibreOffice will
+otherwise offer to evaluate it as a formula on open (CWE-1236). Array fields
+go through `joinList()`, which escapes *after* joining — only the final
+string's leading character matters to Excel, matching how `safeCell` checks
+it. `exportPdf.ts` intentionally skips this: pdfkit draws the same strings as
+literal text, never as spreadsheet formulas, so escaping there would just
+leave a stray visible apostrophe with no security benefit.

@@ -17,7 +17,7 @@ jobs:
           fetch-depth: 0
 
       # Requires an ANTHROPIC_API_KEY (or CLAUDE_CODE_OAUTH_TOKEN) repo secret —
-      # see docs/ci-cd.md for setup. This job fails harmlessly (no PR comment)
+      # see CI-CD.md for setup. This job fails harmlessly (no PR comment)
       # until that secret is added.
       - name: Run Claude Code review
         uses: anthropics/claude-code-action@v1

@@ -30,6 +30,8 @@ export interface RopaListFilters {
   departmentId?: string;
   status?: string;
   search?: string;
+  createdFrom?: Date;
+  createdTo?: Date;
 }
 
 export async function listRopaRecords(user: AuthUser, filters: RopaListFilters) {
@@ -47,6 +49,12 @@ export async function listRopaRecords(user: AuthUser, filters: RopaListFilters) 
       { activityName: { contains: filters.search, mode: 'insensitive' } },
       { referenceNo: { contains: filters.search, mode: 'insensitive' } },
     ];
+  }
+  if (filters.createdFrom || filters.createdTo) {
+    where.createdAt = {
+      ...(filters.createdFrom ? { gte: filters.createdFrom } : {}),
+      ...(filters.createdTo ? { lte: filters.createdTo } : {}),
+    };
   }
 
   return prisma.ropaRecord.findMany({
