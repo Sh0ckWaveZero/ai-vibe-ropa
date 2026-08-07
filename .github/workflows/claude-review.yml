@@ -1,0 +1,44 @@
+name: Claude Code Review
+
+on:
+  pull_request:
+    types: [opened, synchronize, reopened]
+
+jobs:
+  claude-review:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      pull-requests: write
+      issues: write
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      # Requires an ANTHROPIC_API_KEY (or CLAUDE_CODE_OAUTH_TOKEN) repo secret —
+      # see docs/ci-cd.md for setup. This job fails harmlessly (no PR comment)
+      # until that secret is added.
+      - name: Run Claude Code review
+        uses: anthropics/claude-code-action@v1
+        with:
+          anthropic_api_key: ${{ secrets.ANTHROPIC_API_KEY }}
+          direct_prompt: |
+            Review this pull request's diff for the ROPA project — an Express +
+            Prisma backend and a SvelteKit frontend implementing a GDPR/PDPA
+            Record of Processing Activities system with role-based permissions
+            and TOTP two-factor auth. Read CLAUDE.md first for project
+            conventions.
+
+            Focus on, in order of severity:
+            1. Security: auth/permission-matrix bypass, injection, secret or
+               TOTP-secret leakage, missing input validation, unsafe cookie/
+               session handling, anything that would let a request skip
+               `requireAuth`/`requireAnyPermission`/`requirePreAuth`.
+            2. Correctness bugs introduced by this diff.
+            3. Deviations from the module pattern and conventions documented
+               in CLAUDE.md.
+
+            Leave one PR review comment summarizing findings, ranked by
+            severity, with file:line references. If nothing significant is
+            found, say so briefly — do not invent issues to fill space.

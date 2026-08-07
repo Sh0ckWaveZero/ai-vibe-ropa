@@ -51,6 +51,32 @@ export interface Dictionary {
     logoutConfirmTitle: string;
     logoutConfirmBody: string;
   };
+  twoFactor: {
+    setupTitle: string;
+    setupSubtitle: string;
+    scanQr: string;
+    manualEntryHint: string;
+    enterCode: string;
+    codePlaceholder: string;
+    confirmSetup: string;
+    verifyTitle: string;
+    verifySubtitle: string;
+    codeOrBackupPlaceholder: string;
+    verifyButton: string;
+    invalidCode: string;
+    backupCodesTitle: string;
+    backupCodesSubtitle: string;
+    savedCodesConfirm: string;
+    sessionExpiredRedirect: string;
+    regenerateBackupCodes: string;
+    regenerateConfirmTitle: string;
+    regenerateConfirmBody: string;
+    statusEnabled: string;
+    statusDisabled: string;
+    resetAction: string;
+    resetConfirmTitle: string;
+    resetConfirmBody: string;
+  };
   status: {
     DRAFT: string;
     SUBMITTED: string;
@@ -118,6 +144,7 @@ export interface Dictionary {
     tempPassword: string;
     createSuccess: string;
     noDepartment: string;
+    twoFaColumn: string;
   };
   roles: {
     title: string;

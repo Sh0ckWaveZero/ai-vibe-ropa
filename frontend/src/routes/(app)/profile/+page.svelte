@@ -2,8 +2,10 @@
   import { getLocaleContext } from '$lib/i18n';
   import { apiFetch, ApiError } from '$lib/api/client';
   import Card from '$lib/components/ui/Card.svelte';
+  import Badge from '$lib/components/ui/Badge.svelte';
   import Button from '$lib/components/ui/Button.svelte';
   import Input from '$lib/components/ui/Input.svelte';
+  import Dialog from '$lib/components/ui/Dialog.svelte';
   import type { PageData } from './$types';
 
   let { data }: { data: PageData } = $props();
@@ -49,6 +51,25 @@
     } finally {
       passwordSaving = false;
     }
+  }
+
+  let regenOpen = $state(false);
+  let regenLoading = $state(false);
+  let newBackupCodes = $state<string[] | null>(null);
+
+  async function confirmRegenerate() {
+    regenLoading = true;
+    try {
+      const res = await apiFetch<{ backupCodes: string[] }>('/auth/2fa/backup-codes/regenerate', { method: 'POST' });
+      newBackupCodes = res.backupCodes;
+    } finally {
+      regenLoading = false;
+    }
+  }
+
+  function closeRegen() {
+    regenOpen = false;
+    newBackupCodes = null;
   }
 </script>
 
@@ -100,4 +121,40 @@
       </Button>
     </div>
   </Card>
+
+  <Card title={$t('twoFactor.setupTitle')}>
+    <div class="flex flex-col gap-3 sm:max-w-sm">
+      <div class="flex items-center gap-2">
+        <Badge label={data.user.totpEnabled ? $t('twoFactor.statusEnabled') : $t('twoFactor.statusDisabled')} />
+      </div>
+      {#if data.user.totpEnabled}
+        <Button variant="secondary" onclick={() => (regenOpen = true)} class="w-fit">
+          {$t('twoFactor.regenerateBackupCodes')}
+        </Button>
+      {/if}
+    </div>
+  </Card>
 </div>
+
+<Dialog bind:open={regenOpen} title={$t('twoFactor.regenerateConfirmTitle')}>
+  {#if newBackupCodes}
+    <div class="flex flex-col gap-4">
+      <p class="text-sm text-muted">{$t('twoFactor.backupCodesSubtitle')}</p>
+      <div class="grid grid-cols-2 gap-2 rounded-md bg-surface-muted p-4 font-mono text-sm text-body">
+        {#each newBackupCodes as code (code)}
+          <div class="text-center">{code}</div>
+        {/each}
+      </div>
+    </div>
+  {:else}
+    <p class="text-muted">{$t('twoFactor.regenerateConfirmBody')}</p>
+  {/if}
+  {#snippet footer()}
+    {#if newBackupCodes}
+      <Button onclick={closeRegen}>{$t('twoFactor.savedCodesConfirm')}</Button>
+    {:else}
+      <Button variant="secondary" onclick={closeRegen}>{$t('common.cancel')}</Button>
+      <Button variant="danger" loading={regenLoading} onclick={confirmRegenerate}>{$t('twoFactor.regenerateBackupCodes')}</Button>
+    {/if}
+  {/snippet}
+</Dialog>

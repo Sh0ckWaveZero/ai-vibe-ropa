@@ -8,8 +8,7 @@
 
   const { t } = getLocaleContext();
 
-  let email = $state('');
-  let password = $state('');
+  let code = $state('');
   let submitting = $state(false);
   let errorMessage = $state('');
 
@@ -18,36 +17,35 @@
     submitting = true;
     errorMessage = '';
     try {
-      const result = await apiFetch<{ stage: 'setup_required' | 'verify_required' }>('/auth/login', {
+      await apiFetch('/auth/2fa/verify', {
         method: 'POST',
-        body: JSON.stringify({ email, password }),
+        body: JSON.stringify({ code }),
       });
-      await goto(result.stage === 'setup_required' ? '/login/setup-2fa' : '/login/verify-2fa');
+      await goto('/');
     } catch (err) {
-      errorMessage = err instanceof ApiError ? $t('auth.invalidCredentials') : $t('common.error');
+      if (err instanceof ApiError && err.status === 401) {
+        await goto('/login');
+        return;
+      }
+      errorMessage = err instanceof ApiError ? $t('twoFactor.invalidCode') : $t('common.error');
     } finally {
       submitting = false;
     }
   }
 </script>
 
-<AuthPageShell title={$t('auth.loginTitle')} subtitle={$t('auth.loginSubtitle')}>
+<AuthPageShell title={$t('twoFactor.verifyTitle')} subtitle={$t('twoFactor.verifySubtitle')}>
   <form onsubmit={onSubmit} class="flex flex-col gap-4">
-    <Input label={$t('auth.email')} type="email" bind:value={email} required autocomplete="username" />
     <Input
-      label={$t('auth.password')}
-      type="password"
-      bind:value={password}
+      label={$t('twoFactor.enterCode')}
+      bind:value={code}
+      autocomplete="one-time-code"
+      placeholder={$t('twoFactor.codeOrBackupPlaceholder')}
       required
-      autocomplete="current-password"
     />
-
     {#if errorMessage}
       <p class="text-sm text-red-600">{errorMessage}</p>
     {/if}
-
-    <Button type="submit" loading={submitting} class="w-full">
-      {submitting ? $t('auth.signingIn') : $t('auth.signIn')}
-    </Button>
+    <Button type="submit" loading={submitting} class="w-full">{$t('twoFactor.verifyButton')}</Button>
   </form>
 </AuthPageShell>

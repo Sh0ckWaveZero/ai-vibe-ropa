@@ -29,7 +29,11 @@ services:
       ACCESS_TOKEN_SECRET: ${ACCESS_TOKEN_SECRET:?ACCESS_TOKEN_SECRET is required}
       REFRESH_TOKEN_TTL_DAYS: ${REFRESH_TOKEN_TTL_DAYS:-7}
       ACCESS_TOKEN_TTL_MIN: ${ACCESS_TOKEN_TTL_MIN:-15}
-      CORS_ORIGIN: ${PUBLIC_ORIGIN:-http://localhost:8080}
+      PRE_AUTH_TOKEN_SECRET: ${PRE_AUTH_TOKEN_SECRET:?PRE_AUTH_TOKEN_SECRET is required}
+      PRE_AUTH_TOKEN_TTL_MIN: ${PRE_AUTH_TOKEN_TTL_MIN:-5}
+      TOTP_ENCRYPTION_KEY: ${TOTP_ENCRYPTION_KEY:?TOTP_ENCRYPTION_KEY is required (openssl rand -hex 32)}
+      TWOFA_ISSUER: ${TWOFA_ISSUER:-ROPA}
+      CORS_ORIGIN: ${PUBLIC_ORIGIN:-https://localhost:8443}
       ADMIN_EMAIL: ${ADMIN_EMAIL:-admin@ropa.local}
       ADMIN_PASSWORD: ${ADMIN_PASSWORD:-ChangeMe123!}
 
@@ -42,16 +46,48 @@ services:
       PORT: 3000
       BACKEND_ORIGIN: http://backend:4000
 
+  # One-off container: generates a self-signed TLS cert into the shared
+  # `certs` volume on first run, then exits successfully. nginx waits for it.
+  certs:
+    image: alpine:3.20
+    entrypoint:
+      - sh
+      - -c
+      - |
+        set -e
+        if [ ! -f /certs/fullchain.pem ] || [ ! -f /certs/privkey.pem ]; then
+          apk add --no-cache openssl >/dev/null
+          echo "Generating self-signed TLS certificate..."
+          openssl req -x509 -nodes -days 825 -newkey rsa:2048 \
+            -keyout /certs/privkey.pem -out /certs/fullchain.pem \
+            -subj "/CN=localhost" \
+            -addext "subjectAltName=DNS:localhost,IP:127.0.0.1"
+        else
+          echo "Self-signed certificate already present, skipping."
+        fi
+    volumes:
+      - certs:/certs
+
   nginx:
     image: nginx:1.27-alpine
     restart: unless-stopped
     depends_on:
-      - frontend
-      - backend
+      frontend:
+        condition: service_started
+      backend:
+        condition: service_started
+      certs:
+        condition: service_completed_successfully
+    environment:
+      PUBLIC_HTTPS_PORT: ${PUBLIC_HTTPS_PORT:-8443}
     ports:
       - '${PUBLIC_PORT:-8080}:80'
+      - '${PUBLIC_HTTPS_PORT:-8443}:443'
     volumes:
       - ./nginx/nginx.conf:/etc/nginx/nginx.conf:ro
+      - ./nginx/templates:/etc/nginx/templates:ro
+      - certs:/etc/nginx/certs:ro
 
 volumes:
   postgres_data:
+  certs:

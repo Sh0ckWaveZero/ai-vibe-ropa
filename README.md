@@ -4,7 +4,8 @@
 **Record of Processing Activities** ตามแนวทาง GDPR มาตรา 30 / PDPA ของไทย
 รองรับการแบ่งข้อมูลตามหน่วยงาน มีขั้นตอนอนุมัติแบบ แบบร่าง → ส่งขออนุมัติ →
 อนุมัติ/ตีกลับ กำหนดสิทธิ์การใช้งานด้วยตารางสิทธิ์ (permission matrix)
-ที่แก้ไขได้จากหน้าเว็บ และรองรับ 3 ภาษา: ไทย / อังกฤษ / จีน
+ที่แก้ไขได้จากหน้าเว็บ, บังคับยืนยันตัวตนสองขั้นตอน (2FA) ทุกบัญชี, เสิร์ฟผ่าน
+HTTPS เสมอ และรองรับ 3 ภาษา: ไทย / อังกฤษ / จีน
 
 ## 🛠️ เทคโนโลยีที่ใช้
 
@@ -19,19 +20,35 @@
 ## 🚀 เริ่มต้นใช้งานอย่างรวดเร็ว
 
 ```bash
-cp .env.example .env      # ปรับ ACCESS_TOKEN_SECRET / บัญชีแอดมินตามต้องการ
+cp .env.example .env      # ปรับ secrets ทั้งหมดตามคำแนะนำในไฟล์ (ดูด้านล่าง)
 docker compose up -d --build
 ```
 
-จากนั้นเปิด **http://localhost:8080** (หรือพอร์ตที่ตั้งไว้ใน `PUBLIC_PORT`)
+จากนั้นเปิด **https://localhost:8443** (หรือพอร์ตที่ตั้งไว้ใน `PUBLIC_HTTPS_PORT`) — ระบบ
+ใช้ใบรับรอง **self-signed** ที่สร้างขึ้นอัตโนมัติในการรันครั้งแรก เบราว์เซอร์จะเตือนว่า
+ใบรับรองไม่น่าเชื่อถือ (เพราะไม่ได้ออกโดย CA จริง) กด "ดำเนินการต่อ/Advanced → Proceed"
+ได้ตามปกติสำหรับการใช้งานภายใน หากต้องเปิดให้เข้าถึงจากอินเทอร์เน็ตจริง ให้เปลี่ยนไปใช้
+ใบรับรองจริง (เช่น Let's Encrypt) แทน
+
+ก่อนรัน ต้องสร้างค่า secret ที่จำเป็นใน `.env`:
+
+```bash
+# ACCESS_TOKEN_SECRET และ PRE_AUTH_TOKEN_SECRET
+openssl rand -hex 32
+# TOTP_ENCRYPTION_KEY (ต้องเป็น 64 hex characters / 32 bytes)
+openssl rand -hex 32
+```
 
 เข้าสู่ระบบด้วยบัญชีแอดมินเริ่มต้น (กำหนดค่าได้ใน `.env` ค่าเริ่มต้นคือ):
 
 - 📧 อีเมล: `admin@ropa.local`
 - 🔑 รหัสผ่าน: `ChangeMe123!`
 
-> ⚠️ **สำคัญ:** เปลี่ยนรหัสผ่านแอดมินทันทีหลังเข้าสู่ระบบครั้งแรก และตั้งค่า
-> `ACCESS_TOKEN_SECRET` เป็นค่าจริงก่อนนำไปใช้งานจริงหรือเผยแพร่ให้ผู้อื่นเข้าถึง
+การเข้าสู่ระบบครั้งแรกจะถูก**บังคับให้ตั้งค่า 2FA** (สแกน QR ด้วยแอปอย่าง Google
+Authenticator หรือ Authy) ก่อนเข้าใช้งานได้ — ดูรายละเอียดที่หัวข้อ
+[การยืนยันตัวตนสองขั้นตอน](#-การยืนยันตัวตนสองขั้นตอน-2fa) ด้านล่าง
+
+> ⚠️ **สำคัญ:** เปลี่ยนรหัสผ่านแอดมินทันทีหลังเข้าสู่ระบบครั้งแรก
 
 เมื่อรันครั้งแรก container ของ backend จะรัน migration และ seed ข้อมูลเริ่มต้นให้อัตโนมัติ ได้แก่
 
@@ -50,11 +67,25 @@ docker compose up -d --build
 
 สามารถสร้างบทบาทใหม่หรือปรับตารางสิทธิ์ได้เองจากหน้า **บทบาทและสิทธิ์** โดยไม่ต้องแก้โค้ด
 
+## 🔒 การยืนยันตัวตนสองขั้นตอน (2FA)
+
+ทุกบัญชี**บังคับ**เปิดใช้ TOTP (มาตรฐานเดียวกับ Google Authenticator/Authy) — ไม่มีทาง
+ข้ามได้ ผู้ใช้ใหม่ที่ยังไม่ตั้งค่าจะถูกพาไปหน้าสแกน QR ทันทีหลังใส่รหัสผ่านถูกต้อง
+
+- **รหัสลับ TOTP เข้ารหัสไว้ในฐานข้อมูล** ด้วย AES-256-GCM (ไม่เก็บเป็น plaintext)
+- **รหัสสำรอง (backup codes)** 10 ชุด ใช้ได้ครั้งเดียวต่อชุด แสดงให้เห็นครั้งเดียวตอนตั้งค่าเสร็จ
+  และสร้างใหม่ได้จากหน้าโปรไฟล์ (ชุดเดิมจะใช้ไม่ได้ทันที)
+- มี **rate limit** ทั้งตอนล็อกอินและตอนยืนยันโค้ด เพื่อป้องกันการเดารหัส
+- ถ้าผู้ใช้ทำอุปกรณ์หาย ผู้มีสิทธิ์ `users.manage` สามารถกด **"Reset 2FA"** จากหน้าผู้ใช้งาน
+  เพื่อบังคับให้ตั้งค่าใหม่ในการเข้าสู่ระบบครั้งถัดไป
+
 ## 🏗️ สถาปัตยกรรมระบบ
 
 ```
+                 :8080 (http, 301 redirect only)
+                 :8443 (https, self-signed cert)
                  ┌────────┐
-  ผู้ใช้ (browser) ─▶ │ nginx  │  :8080
+  ผู้ใช้ (browser) ─▶ │ nginx  │
                  └───┬────┘
               /api/*  │  เส้นทางอื่นทั้งหมด
                  ┌────▼────┐        ┌──────────┐
@@ -67,6 +98,10 @@ docker compose up -d --build
                  └──────────┘
 ```
 
+- **HTTPS is always on.** nginx terminates TLS with a certificate generated
+  by a one-off `certs` container on first boot (see `docker-compose.yml`) and
+  redirects all plain HTTP to HTTPS. Cookies are flagged `Secure`, so this
+  isn't optional — login simply won't work over plain HTTP in production.
 - **เบราว์เซอร์ของผู้ใช้** จะคุยกับ origin เดียวเท่านั้น (ผ่าน nginx) ไม่ได้ยิงตรงไป
   backend เลย ทำให้ไม่ต้องตั้งค่า CORS ในระบบจริง
 - **การเรนเดอร์ฝั่งเซิร์ฟเวอร์ (SSR)** เช่นการตรวจสอบสถานะล็อกอินใน root layout
@@ -96,6 +131,14 @@ docker compose up -d --build
 `ropa.approve` (เช่นบทบาท DPO) จะเป็นผู้อนุมัติหรือตีกลับพร้อมระบุเหตุผล
 ทุกการกระทำจะถูกบันทึกลงประวัติการใช้งาน (audit log) โดยอัตโนมัติ
 
+## 🛡️ ความปลอดภัยและ CI/CD
+
+ทุก push/PR จะรันผ่านไปป์ไลน์อัตโนมัติ: ตรวจ secret รั่วไหล → build/typecheck →
+สแกน dependency (npm audit) + static analysis (CodeQL) → build image และสแกนด้วย
+Trivy → ให้ Claude อ่าน diff แล้วคอมเมนต์รีวิวความปลอดภัย/ความถูกต้องของโค้ด
+รายละเอียดทั้งหมดอยู่ที่ [`docs/ci-cd.md`](docs/ci-cd.md) และมาตรการความปลอดภัย
+ที่ระบบใช้อยู่ตอนนี้อยู่ที่ [`SECURITY.md`](SECURITY.md)
+
 ## 💻 การพัฒนาในเครื่อง (ไม่ใช้ Docker ทั้งหมด)
 
 ```bash
@@ -104,7 +147,7 @@ docker compose up -d postgres
 
 # Backend
 cd backend
-cp .env.example .env   # ชี้ DATABASE_URL ไปที่ postgres ของตนเอง
+cp .env.example .env   # ชี้ DATABASE_URL ไปที่ postgres ของตนเอง + ใส่ secrets (ดูคอมเมนต์ในไฟล์)
 npm install
 npx prisma migrate deploy
 npm run seed
@@ -121,14 +164,21 @@ npm run dev              # http://localhost:5173, proxy /api ไปที่ :40
 
 ```
 backend/
-  prisma/schema.prisma       โมเดลข้อมูล (users, roles, permissions, departments, ropa_records, audit_logs)
+  prisma/schema.prisma       โมเดลข้อมูล (users, roles, permissions, departments, ropa_records, backup_codes, audit_logs)
   src/modules/                 1 โฟลเดอร์ต่อ 1 resource: auth, users, roles, departments, ropa, audit
-  src/middleware/               requireAuth (ตรวจ JWT) + requireAnyPermission (ตรวจสิทธิ์)
+  src/middleware/               requireAuth / requireAnyPermission / requirePreAuth (ขั้น 2FA) / rateLimit
+  src/utils/totp.ts             เข้ารหัส/ตรวจรหัส TOTP + สร้าง QR code
+  src/utils/backupCodes.ts      สร้าง/ตรวจ/เก็บรหัสสำรอง (bcrypt hash, ใช้ครั้งเดียว)
   src/db/seed/                   สร้างบทบาท/สิทธิ์/หน่วยงาน/แอดมินเริ่มต้น
 frontend/
   src/routes/(app)/             ส่วนของแอปที่ต้องล็อกอิน (sidebar/topbar) + หน้าต่าง ๆ
-  src/routes/login/             หน้าเข้าสู่ระบบ (เข้าถึงได้โดยไม่ต้องล็อกอิน)
+  src/routes/login/             เข้าสู่ระบบ + ขั้นตอน 2FA (setup-2fa, verify-2fa, backup-codes)
   src/lib/i18n/                  ไฟล์คำแปล th/en/zh และ locale context
   src/lib/components/            UI ที่ใช้ร่วมกัน (Button, Card, Dialog, TagInput, ...) และฟอร์ม ROPA
-nginx/nginx.conf               ค่าคอนฟิก reverse proxy ที่ใช้ใน docker-compose
+nginx/
+  nginx.conf                    main config (include conf.d/*.conf)
+  templates/default.conf.template  HTTP→HTTPS redirect + HTTPS reverse proxy (envsubst ตอน container start)
+.github/workflows/             ci.yml (build/scan pipeline) + claude-review.yml (Claude รีวิว PR)
+docs/ci-cd.md                  รายละเอียดไปป์ไลน์ CI/CD
+SECURITY.md                    นโยบายความปลอดภัยและวิธีรายงานช่องโหว่
 ```

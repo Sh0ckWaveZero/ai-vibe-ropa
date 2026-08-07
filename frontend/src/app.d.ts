@@ -13,6 +13,7 @@ export interface SessionUser {
   departmentNameEn: string | null;
   departmentNameZh: string | null;
   localePref: Locale;
+  totpEnabled: boolean;
   permissions: string[];
 }
 

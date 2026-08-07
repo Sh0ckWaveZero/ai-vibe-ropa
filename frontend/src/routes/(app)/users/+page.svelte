@@ -31,6 +31,7 @@
     email: string;
     fullName: string;
     isActive: boolean;
+    totpEnabled: boolean;
     lastLoginAt: string | null;
     roleId: string;
     departmentId: string | null;
@@ -154,6 +155,28 @@
       resetSaving = false;
     }
   }
+
+  // Reset 2FA dialog
+  let reset2faOpen = $state(false);
+  let reset2faLoading = $state(false);
+  let reset2faTarget = $state<UserRow | null>(null);
+
+  function openReset2fa(u: UserRow) {
+    reset2faTarget = u;
+    reset2faOpen = true;
+  }
+
+  async function confirmReset2fa() {
+    if (!reset2faTarget) return;
+    reset2faLoading = true;
+    try {
+      await apiFetch(`/users/${reset2faTarget.id}/reset-2fa`, { method: 'POST' });
+      reset2faOpen = false;
+      await loadAll();
+    } finally {
+      reset2faLoading = false;
+    }
+  }
 </script>
 
 <div class="flex flex-col gap-4">
@@ -175,6 +198,7 @@
               <th class="py-2 pr-4">{$t('users.role')}</th>
               <th class="py-2 pr-4">{$t('users.department')}</th>
               <th class="py-2 pr-4">{$t('users.status')}</th>
+              <th class="py-2 pr-4">{$t('users.twoFaColumn')}</th>
               <th class="py-2 pr-4">{$t('common.actions')}</th>
             </tr>
           </thead>
@@ -189,9 +213,15 @@
                   <Badge label={u.isActive ? $t('common.active') : $t('common.inactive')} />
                 </td>
                 <td class="py-2 pr-4">
+                  <Badge label={u.totpEnabled ? $t('twoFactor.statusEnabled') : $t('twoFactor.statusDisabled')} />
+                </td>
+                <td class="py-2 pr-4">
                   <div class="flex gap-2">
                     <button class="text-primary hover:underline" onclick={() => openEdit(u)}>{$t('common.edit')}</button>
                     <button class="text-primary hover:underline" onclick={() => openReset(u)}>{$t('users.resetPassword')}</button>
+                    {#if u.totpEnabled}
+                      <button class="text-red-600 hover:underline" onclick={() => openReset2fa(u)}>{$t('twoFactor.resetAction')}</button>
+                    {/if}
                   </div>
                 </td>
               </tr>
@@ -262,5 +292,13 @@
   {#snippet footer()}
     <Button variant="secondary" onclick={() => (resetOpen = false)}>{$t('common.cancel')}</Button>
     <Button loading={resetSaving} disabled={resetPassword.length < 8} onclick={submitReset}>{$t('common.save')}</Button>
+  {/snippet}
+</Dialog>
+
+<Dialog bind:open={reset2faOpen} title={$t('twoFactor.resetConfirmTitle')}>
+  <p class="text-muted">{$t('twoFactor.resetConfirmBody')}</p>
+  {#snippet footer()}
+    <Button variant="secondary" onclick={() => (reset2faOpen = false)}>{$t('common.cancel')}</Button>
+    <Button variant="danger" loading={reset2faLoading} onclick={confirmReset2fa}>{$t('twoFactor.resetAction')}</Button>
   {/snippet}
 </Dialog>

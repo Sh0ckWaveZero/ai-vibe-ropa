@@ -91,16 +91,34 @@ model User {
   createdAt    DateTime  @default(now())
   updatedAt    DateTime  @updatedAt
 
+  // Two-factor authentication (TOTP) — mandatory for every account.
+  totpSecretEnc String?  @map("totp_secret_enc")
+  totpEnabled   Boolean  @default(false) @map("totp_enabled")
+
   role       Role        @relation(fields: [roleId], references: [id])
   department Department? @relation(fields: [departmentId], references: [id])
 
   refreshTokens    RefreshToken[]
+  backupCodes      BackupCode[]
   auditLogs        AuditLog[]
   createdRecords   RopaRecord[]   @relation("RopaCreatedBy")
   updatedRecords   RopaRecord[]   @relation("RopaUpdatedBy")
   approvedRecords  RopaRecord[]   @relation("RopaApprovedBy")
 
   @@map("users")
+}
+
+model BackupCode {
+  id        String    @id @default(uuid())
+  userId    String
+  codeHash  String
+  usedAt    DateTime?
+  createdAt DateTime  @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("backup_codes")
+  @@index([userId])
 }
 
 model RefreshToken {

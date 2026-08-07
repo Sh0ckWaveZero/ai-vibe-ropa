@@ -8,6 +8,7 @@ const userSummarySelect = {
   fullName: true,
   isActive: true,
   localePref: true,
+  totpEnabled: true,
   lastLoginAt: true,
   createdAt: true,
   roleId: true,

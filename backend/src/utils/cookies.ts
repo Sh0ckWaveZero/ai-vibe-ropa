@@ -23,3 +23,14 @@ export function clearAuthCookies(res: Response) {
   res.clearCookie('ropa_at', baseOptions);
   res.clearCookie('ropa_rt', baseOptions);
 }
+
+export function setPreAuthCookie(res: Response, preAuthToken: string) {
+  res.cookie('ropa_pre', preAuthToken, {
+    ...baseOptions,
+    maxAge: env.PRE_AUTH_TOKEN_TTL_MIN * 60 * 1000,
+  });
+}
+
+export function clearPreAuthCookie(res: Response) {
+  res.clearCookie('ropa_pre', baseOptions);
+}

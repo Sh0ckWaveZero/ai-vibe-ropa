@@ -1,6 +1,7 @@
 import { Router } from 'express';
 import { z } from 'zod';
 import * as usersService from './users.service.js';
+import * as authService from '../auth/auth.service.js';
 import { requireAuth } from '../../middleware/auth.js';
 import { requireAnyPermission } from '../../middleware/authorize.js';
 import { asyncHandler } from '../../utils/asyncHandler.js';
@@ -94,6 +95,16 @@ router.post(
     const { newPassword } = resetPasswordSchema.parse(req.body);
     await usersService.resetPassword(req.params.id, newPassword);
     await logAudit({ userId: req.user!.id, action: 'user.reset_password', entityType: 'User', entityId: req.params.id, req });
+    res.json({ ok: true });
+  })
+);
+
+router.post(
+  '/:id/reset-2fa',
+  requireAnyPermission('users.manage'),
+  asyncHandler(async (req, res) => {
+    await authService.adminResetTwoFactor(req.params.id);
+    await logAudit({ userId: req.user!.id, action: 'auth.admin_2fa_reset', entityType: 'User', entityId: req.params.id, req });
     res.json({ ok: true });
   })
 );
