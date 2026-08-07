@@ -207,6 +207,14 @@ security posture) — don't confuse the doc for the automation itself when
 extending either. The Claude review job needs an `ANTHROPIC_API_KEY` (or
 `CLAUDE_CODE_OAUTH_TOKEN`) repo
 secret to actually post comments; without it the job just fails harmlessly.
+See `CI-CD.md`'s "Two equally valid ways to run this pipeline" — the
+maintainer routes PRs through Claude Code sessions directly rather than
+waiting on GitHub Actions, so when asked to "run the CI checks" or "review
+this before merging," run the commands in that section yourself (build,
+`npm audit` both projects, gitleaks via the docker image) and, for
+anything security-sensitive, do the same find-then-adversarially-verify
+pass used for the 2FA/HTTPS and export work — don't just point back at the
+GitHub Actions workflows as if that alone satisfies the ask.
 
 **Export routes reuse the list endpoint's scoping on purpose.**
 `GET /ropa/export/excel` and `GET /ropa/export/pdf` (`ropa.routes.ts`) both

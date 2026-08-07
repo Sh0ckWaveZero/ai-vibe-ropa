@@ -73,7 +73,25 @@ for `main` to make it a hard gate:
 This has to be done once in the repo settings — GitHub doesn't let a
 committed file turn on branch protection by itself.
 
-## Running the same checks locally before pushing
+## Two equally valid ways to run this pipeline
+
+**Path A — automatic, on every push/PR.** GitHub Actions runs the waves
+above with no human involved. This is the safety net for changes nobody
+personally reviewed before they landed.
+
+**Path B — on demand, by asking Claude Code to run it.** For a repo where
+the maintainer already routes every PR through a Claude Code session
+anyway, that session running the checks directly *is* the pipeline for
+that change — there's no reason to wait for GitHub Actions or duplicate the
+work by hand. Just ask, in plain language: *"run the CI checks on this"* or
+*"do a security review before I merge this"*. That single ask covers more
+than Path A's automated stages, since Claude can also do the adversarial
+review pass (find → independently try to refute → keep only what survives)
+that a pattern-matching scanner can't — this is exactly how the 2FA/HTTPS
+work and the export feature in this repo were checked before being pushed.
+
+What Claude actually runs when asked (the same underlying commands Path A's
+`ci.yml` runs, so the result is consistent either way):
 
 ```bash
 # Type-check
@@ -93,3 +111,8 @@ docker build -t ropa-frontend:local ./frontend
 docker run --rm -v /var/run/docker.sock:/var/run/docker.sock aquasec/trivy:latest \
   image --severity CRITICAL,HIGH ropa-backend:local
 ```
+
+Path A and Path B aren't a choice between one or the other — use both. Path
+B before merging (thorough, judgment-based, catches what scanners miss),
+Path A as the always-on backstop for anything that ships without a Claude
+session in the loop.
