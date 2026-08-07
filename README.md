@@ -1,51 +1,62 @@
-# ROPA — Record of Processing Activities
+# ROPA — ระบบบันทึกรายการกิจกรรมการประมวลผลข้อมูลส่วนบุคคล
 
-A self-hosted system for recording and managing an organization's Record of
-Processing Activities (GDPR Art. 30 / Thailand PDPA style), with department
-scoping, a draft → submit → approve/reject workflow, role-based access via an
-editable permission matrix, and a Thai / English / Chinese UI.
+ระบบสำหรับติดตั้งใช้งานเอง (self-hosted) เพื่อบันทึกและบริหารจัดการ
+**Record of Processing Activities** ตามแนวทาง GDPR มาตรา 30 / PDPA ของไทย
+รองรับการแบ่งข้อมูลตามหน่วยงาน มีขั้นตอนอนุมัติแบบ แบบร่าง → ส่งขออนุมัติ →
+อนุมัติ/ตีกลับ กำหนดสิทธิ์การใช้งานด้วยตารางสิทธิ์ (permission matrix)
+ที่แก้ไขได้จากหน้าเว็บ และรองรับ 3 ภาษา: ไทย / อังกฤษ / จีน
 
-## Stack
+## เทคโนโลยีที่ใช้
 
-- **Frontend**: SvelteKit 5 + Tailwind CSS v4 (gray/gold/yellow theme, dark mode)
-- **Backend**: Node.js + Express + TypeScript, Prisma ORM
-- **Database**: PostgreSQL
-- **Reverse proxy**: nginx (routes `/api/*` to the backend, everything else to the frontend)
-- Everything runs via `docker compose`
+| ส่วนประกอบ | เทคโนโลยี |
+|---|---|
+| หน้าบ้าน (Frontend) | SvelteKit 5 + Tailwind CSS v4 (ธีมเทา/ทอง/เหลือง พร้อม Dark Mode) |
+| หลังบ้าน (Backend) | Node.js + Express + TypeScript, Prisma ORM |
+| ฐานข้อมูล | PostgreSQL |
+| Reverse proxy | nginx (ส่ง `/api/*` ไปที่ backend ส่วนที่เหลือส่งไปที่ frontend) |
+| การรัน | ทุกอย่างรันผ่าน `docker compose` |
 
-## Quick start
+## เริ่มต้นใช้งานอย่างรวดเร็ว
 
 ```bash
-cp .env.example .env      # adjust ACCESS_TOKEN_SECRET / admin credentials
+cp .env.example .env      # ปรับ ACCESS_TOKEN_SECRET / บัญชีแอดมินตามต้องการ
 docker compose up -d --build
 ```
 
-Then open **http://localhost:8080** (or whatever `PUBLIC_PORT` you set).
+จากนั้นเปิด **http://localhost:8080** (หรือพอร์ตที่ตั้งไว้ใน `PUBLIC_PORT`)
 
-Sign in with the bootstrap admin account (from `.env`, defaults to):
+เข้าสู่ระบบด้วยบัญชีแอดมินเริ่มต้น (กำหนดค่าได้ใน `.env` ค่าเริ่มต้นคือ):
 
-- Email: `admin@ropa.local`
-- Password: `ChangeMe123!`
+- อีเมล: `admin@ropa.local`
+- รหัสผ่าน: `ChangeMe123!`
 
-**Change the admin password after first login**, and set a real
-`ACCESS_TOKEN_SECRET` before deploying anywhere shared.
+> **สำคัญ:** เปลี่ยนรหัสผ่านแอดมินทันทีหลังเข้าสู่ระบบครั้งแรก และตั้งค่า
+> `ACCESS_TOKEN_SECRET` เป็นค่าจริงก่อนนำไปใช้งานจริงหรือเผยแพร่ให้ผู้อื่นเข้าถึง
 
-On first boot, the backend container automatically applies database
-migrations and seeds:
+เมื่อรันครั้งแรก container ของ backend จะรัน migration และ seed ข้อมูลเริ่มต้นให้อัตโนมัติ ได้แก่
 
-- Default **permissions** and **roles**: Super Admin, DPO / Compliance
-  Officer, Department Editor, Viewer / Auditor
-- Default **departments**: Head Office, IT, HR (edit/add from the
-  Departments page)
-- The bootstrap admin user
+- **สิทธิ์การใช้งาน** และ **บทบาท** เริ่มต้น
+- **หน่วยงาน** เริ่มต้น: สำนักงานส่วนกลาง, IT, HR (เพิ่ม/แก้ไขได้จากหน้า "หน่วยงาน")
+- บัญชีผู้ดูแลระบบเริ่มต้น (bootstrap admin)
 
-## Architecture
+### บทบาทเริ่มต้นในระบบ
+
+| บทบาท | สิทธิ์โดยสรุป |
+|---|---|
+| ผู้ดูแลระบบสูงสุด (Super Admin) | ทำได้ทุกอย่างในระบบ |
+| เจ้าหน้าที่คุ้มครองข้อมูลส่วนบุคคล (DPO) | ดู/แก้ไข ROPA ได้ทุกหน่วยงาน, อนุมัติ/ตีกลับ, ดูประวัติการใช้งาน |
+| ผู้บันทึกข้อมูลหน่วยงาน (Department Editor) | สร้าง/แก้ไข/ส่งขออนุมัติ ROPA เฉพาะหน่วยงานตนเอง |
+| ผู้ตรวจสอบ/ผู้เยี่ยมชม (Viewer / Auditor) | ดู ROPA ได้ทุกหน่วยงานและดูประวัติการใช้งาน (อ่านอย่างเดียว) |
+
+สามารถสร้างบทบาทใหม่หรือปรับตารางสิทธิ์ได้เองจากหน้า **บทบาทและสิทธิ์** โดยไม่ต้องแก้โค้ด
+
+## สถาปัตยกรรมระบบ
 
 ```
                  ┌────────┐
-  browser  ───▶  │ nginx  │  :8080
+  ผู้ใช้ (browser) ─▶ │ nginx  │  :8080
                  └───┬────┘
-              /api/*  │  everything else
+              /api/*  │  เส้นทางอื่นทั้งหมด
                  ┌────▼────┐        ┌──────────┐
                  │ backend │  ───▶  │ postgres │
                  │ :4000   │        │  :5432   │
@@ -56,70 +67,68 @@ migrations and seeds:
                  └──────────┘
 ```
 
-- The **browser** always talks to a single origin (nginx); it never talks to
-  the backend directly, so there's no CORS to configure in production.
-- **Server-side rendering** (the auth check in the root layout) calls the
-  backend directly over the Docker network (`BACKEND_ORIGIN`), forwarding the
-  request's cookies manually — see `frontend/src/lib/server/backend.ts`.
-- Everything else (CRUD screens) fetches client-side against relative
-  `/api/*` paths — see `frontend/src/lib/api/client.ts`, which also handles
-  silent access-token refresh on a 401.
+- **เบราว์เซอร์ของผู้ใช้** จะคุยกับ origin เดียวเท่านั้น (ผ่าน nginx) ไม่ได้ยิงตรงไป
+  backend เลย ทำให้ไม่ต้องตั้งค่า CORS ในระบบจริง
+- **การเรนเดอร์ฝั่งเซิร์ฟเวอร์ (SSR)** เช่นการตรวจสอบสถานะล็อกอินใน root layout
+  จะเรียก backend ตรงผ่านเครือข่ายภายในของ Docker (`BACKEND_ORIGIN`) และส่งต่อ
+  cookie ของ request เองด้วยมือ — ดูที่ `frontend/src/lib/server/backend.ts`
+- ส่วนที่เหลือ (หน้าจอ CRUD ต่าง ๆ) เรียก API ฝั่ง client ผ่าน path แบบ relative
+  `/api/*` — ดูที่ `frontend/src/lib/api/client.ts` ซึ่งจัดการ refresh access
+  token ให้อัตโนมัติเมื่อได้รับ 401
 
-## Permission model
+## ระบบสิทธิ์การใช้งาน (Permission Matrix)
 
-Access control is a **permission matrix**: `permissions` (module + action,
-e.g. `ropa.read_own`, `ropa.approve`, `users.manage`) are grouped into
-`roles` via `role_permissions`, and each `user` has exactly one role plus an
-optional `department`. Department-scoped permissions come in `_own` / `_all`
-pairs (e.g. `ropa.read_own` vs `ropa.read_all`) so a role can be limited to
-its own department or granted organization-wide visibility.
+การควบคุมสิทธิ์ใช้แนวคิด **ตารางสิทธิ์ (permission matrix)**: `permissions`
+(รวม module + action เช่น `ropa.read_own`, `ropa.approve`, `users.manage`)
+จะถูกจัดกลุ่มเข้ากับ `roles` ผ่านตาราง `role_permissions` และผู้ใช้แต่ละคน
+(`user`) มีได้ 1 บทบาท พร้อมหน่วยงาน (ไม่บังคับ) สิทธิ์ที่เกี่ยวกับหน่วยงาน
+จะมาเป็นคู่ `_own` / `_all` (เช่น `ropa.read_own` กับ `ropa.read_all`)
+ทำให้กำหนดได้ว่าบทบาทนั้นเห็นเฉพาะหน่วยงานตนเอง หรือเห็นได้ทั้งองค์กร
 
-Admins can create new roles and edit the matrix live from **Roles &
-Permissions** — no code changes needed to adjust who can do what. See
-`backend/src/constants/permissions.ts` for the full permission list and the
-default role assignments.
+ดูรายการสิทธิ์ทั้งหมดและการกำหนดบทบาทเริ่มต้นได้ที่
+`backend/src/constants/permissions.ts`
 
-## ROPA workflow
+## ขั้นตอนการทำงานของ ROPA
 
-Each record moves through `DRAFT → SUBMITTED → APPROVED` (or `REJECTED`,
-which sends it back to a re-editable state). A department editor
-creates/edits drafts and submits them; a user with `ropa.approve` (e.g. the
-DPO role) approves or rejects with a reason. Every action is written to the
-audit log.
+แต่ละรายการจะไล่สถานะตาม `แบบร่าง (DRAFT) → รอการอนุมัติ (SUBMITTED) →
+อนุมัติแล้ว (APPROVED)` หรือ `ถูกตีกลับ (REJECTED)` ซึ่งจะกลับไปแก้ไขได้อีกครั้ง
+ผู้บันทึกข้อมูลหน่วยงานสร้าง/แก้ไขแบบร่างและส่งขออนุมัติ ส่วนผู้ที่มีสิทธิ์
+`ropa.approve` (เช่นบทบาท DPO) จะเป็นผู้อนุมัติหรือตีกลับพร้อมระบุเหตุผล
+ทุกการกระทำจะถูกบันทึกลงประวัติการใช้งาน (audit log) โดยอัตโนมัติ
 
-## Local development (without Docker)
+## การพัฒนาในเครื่อง (ไม่ใช้ Docker ทั้งหมด)
 
 ```bash
-# Postgres only, via compose
+# รัน Postgres อย่างเดียวผ่าน compose
 docker compose up -d postgres
 
 # Backend
 cd backend
-cp .env.example .env   # point DATABASE_URL at your postgres
+cp .env.example .env   # ชี้ DATABASE_URL ไปที่ postgres ของตนเอง
 npm install
 npx prisma migrate deploy
 npm run seed
 npm run dev             # http://localhost:4000
 
-# Frontend (separate terminal)
+# Frontend (เปิดอีก terminal)
 cd frontend
 cp .env.example .env
 npm install
-npm run dev              # http://localhost:5173, proxies /api to :4000
+npm run dev              # http://localhost:5173, proxy /api ไปที่ :4000
 ```
 
-## Project layout
+## โครงสร้างโปรเจกต์
 
 ```
 backend/
-  prisma/schema.prisma       Data model (users, roles, permissions, departments, ropa_records, audit_logs)
-  src/modules/                One folder per resource: auth, users, roles, departments, ropa, audit
-  src/middleware/              requireAuth (JWT) + requireAnyPermission (RBAC)
-  src/db/seed/                 Default roles/permissions/departments/admin user
+  prisma/schema.prisma       โมเดลข้อมูล (users, roles, permissions, departments, ropa_records, audit_logs)
+  src/modules/                 1 โฟลเดอร์ต่อ 1 resource: auth, users, roles, departments, ropa, audit
+  src/middleware/               requireAuth (ตรวจ JWT) + requireAnyPermission (ตรวจสิทธิ์)
+  src/db/seed/                   สร้างบทบาท/สิทธิ์/หน่วยงาน/แอดมินเริ่มต้น
 frontend/
-  src/routes/(app)/            Authenticated app shell (sidebar/topbar) + pages
-  src/routes/login/            Public login page
-  src/lib/i18n/                th/en/zh dictionaries + locale context
-  src/lib/components/          Shared UI (Button, Card, Dialog, TagInput, ...) and the ROPA form
-nginx/nginx.conf              Reverse proxy config used by docker-compose
+  src/routes/(app)/             ส่วนของแอปที่ต้องล็อกอิน (sidebar/topbar) + หน้าต่าง ๆ
+  src/routes/login/             หน้าเข้าสู่ระบบ (เข้าถึงได้โดยไม่ต้องล็อกอิน)
+  src/lib/i18n/                  ไฟล์คำแปล th/en/zh และ locale context
+  src/lib/components/            UI ที่ใช้ร่วมกัน (Button, Card, Dialog, TagInput, ...) และฟอร์ม ROPA
+nginx/nginx.conf               ค่าคอนฟิก reverse proxy ที่ใช้ใน docker-compose
 ```
