@@ -257,3 +257,22 @@ something to fetch before its first mutating request.
 exists specifically to satisfy CodeQL's missing-rate-limiting check on every
 route, not just auth. `loginLimiter`/`twoFaLimiter` are stacked on top of it
 for the specific endpoints worth limiting more tightly.
+
+**The CodeQL "Missing CSRF middleware" finding is suppressed inline, not a
+gap.** That specific query (`js/missing-token-validation`) recognizes known
+libraries like `csurf` — which is deprecated upstream with its own
+advisories, so we deliberately didn't use it — not an arbitrary hand-rolled
+double-submit-cookie implementation, however correct. The suppression
+comment lives right on `app.use(cookieParser())` in `app.ts`, next to
+`app.use(requireCsrf)` on the following line. Don't remove that comment
+without confirming real CSRF coverage still exists another way; don't add
+new mutating routes outside the `/api` prefix `requireCsrf` covers, either.
+
+**`.gitleaks.toml` allowlists exactly one path:
+`backend/.env.test`.** Its `TOTP_ENCRYPTION_KEY` is a real random 64-hex-char
+value (has to be, to match the same validation the real env var gets) which
+trips gitleaks' generic high-entropy-secret rule despite being test-only and
+never deployed anywhere. Extend the allowlist rather than weakening that
+fixture if this happens again elsewhere — don't swap in a low-entropy fake
+value just to dodge the scanner, since that stops the test env from
+faithfully matching production validation.

@@ -1,0 +1,10 @@
+# Extends gitleaks' default ruleset unchanged; the only addition is the
+# allowlist below.
+[extend]
+useDefault = true
+
+[allowlist]
+description = "Known-safe test fixtures — dummy secrets used only for local/CI test runs, never a real deployment"
+paths = [
+  '''backend/\.env\.test$''',
+]

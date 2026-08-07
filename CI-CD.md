@@ -111,7 +111,8 @@ What Claude actually runs when asked (the same underlying commands Path A's
 (cd frontend && npm audit --audit-level=high)
 
 # Secret scan (no local install needed)
-docker run --rm -v "$PWD:/repo" zricethezav/gitleaks:latest detect --source=/repo --no-banner -v
+docker run --rm -v "$PWD:/repo" zricethezav/gitleaks:latest detect \
+  --source=/repo --config=/repo/.gitleaks.toml --no-banner -v
 
 # Container scan (after building the images)
 docker build -t ropa-backend:local ./backend

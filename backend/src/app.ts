@@ -21,14 +21,20 @@ export function createApp() {
   app.set('trust proxy', 1);
   app.use(helmet());
   app.use(cors({ origin: env.CORS_ORIGIN, credentials: true }));
+  // codeql[js/missing-token-validation] -- CSRF IS enforced: requireCsrf
+  // (double-submit cookie, see middleware/csrf.ts) is applied globally on
+  // the very next line, immediately after cookies become available. Not
+  // the `csurf` package deliberately — it's deprecated upstream and pulls
+  // in its own advisories; this is the same OWASP double-submit-cookie
+  // pattern, hand-rolled with a timing-safe comparison instead.
   app.use(cookieParser());
+  app.use(requireCsrf);
   app.use(express.json({ limit: '1mb' }));
   app.use(morgan(env.NODE_ENV === 'development' ? 'dev' : 'combined'));
 
   app.get('/health', (_req, res) => res.json({ status: 'ok' }));
 
   app.use('/api', apiLimiter);
-  app.use('/api', requireCsrf);
 
   app.use('/api/auth', authRoutes);
   app.use('/api/users', usersRoutes);

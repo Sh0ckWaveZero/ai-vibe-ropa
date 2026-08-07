@@ -23,7 +23,7 @@ jobs:
       - name: Run gitleaks
         run: |
           docker run --rm -v "$PWD:/repo" zricethezav/gitleaks:latest detect \
-            --source=/repo --no-banner --redact -v
+            --source=/repo --config=/repo/.gitleaks.toml --no-banner --redact -v
 
   backend-build:
     name: Backend — install, typecheck, build
