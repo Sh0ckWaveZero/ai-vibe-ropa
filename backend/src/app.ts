@@ -5,6 +5,8 @@ import cookieParser from 'cookie-parser';
 import morgan from 'morgan';
 import { env } from './config/env.js';
 import { notFoundHandler, errorHandler } from './middleware/errorHandler.js';
+import { apiLimiter } from './middleware/rateLimit.js';
+import { requireCsrf } from './middleware/csrf.js';
 
 import authRoutes from './modules/auth/auth.routes.js';
 import usersRoutes from './modules/users/users.routes.js';
@@ -24,6 +26,9 @@ export function createApp() {
   app.use(morgan(env.NODE_ENV === 'development' ? 'dev' : 'combined'));
 
   app.get('/health', (_req, res) => res.json({ status: 'ok' }));
+
+  app.use('/api', apiLimiter);
+  app.use('/api', requireCsrf);
 
   app.use('/api/auth', authRoutes);
   app.use('/api/users', usersRoutes);

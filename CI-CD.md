@@ -20,7 +20,10 @@ Wave 1 (parallel, seconds)        Wave 2 (parallel, ~1 min)         Wave 3 (last
 ├────────────────────┤   ──►      ├───────────────────────┤        │  Trivy-scan for            │
 │ backend-build       │            │ sast-codeql           │        │  CRITICAL/HIGH CVEs       │
 │ frontend-build      │            │  (CodeQL JS/TS)       │        └───────────────────────────┘
-└────────────────────┘            └───────────────────────┘
+└────────────────────┘            │ backend-test          │
+                                   │  (vitest + supertest, │
+                                   │   real Postgres)      │
+                                   └───────────────────────┘
 
 (separate workflow, runs on pull_request only)
 ┌──────────────────────────────────────────────────────────┐
@@ -35,6 +38,7 @@ Wave 1 (parallel, seconds)        Wave 2 (parallel, ~1 min)         Wave 3 (last
 |---|---|---|---|
 | `secret-scan` | [gitleaks](https://github.com/gitleaks/gitleaks) (official Docker image, no license/action needed) | API keys, private keys, tokens accidentally committed | Yes |
 | `backend-build` / `frontend-build` | `tsc` / `svelte-check` + `vite build` | Type errors, broken builds | Yes |
+| `backend-test` | [Vitest](https://vitest.dev/) + [supertest](https://github.com/ladjs/supertest) against a real Postgres service container | Permission-matrix scoping bugs, ROPA status-machine regressions, 2FA login-stage bypasses — see `backend/src/__tests__/` | Yes |
 | `dependency-scan` | `npm audit --audit-level=high` | Known-vulnerable npm dependencies (backend and frontend, run separately) | Yes |
 | `sast-codeql` | [GitHub CodeQL](https://codeql.github.com/) | Injection, XSS, unsafe deserialization, and other JS/TS security patterns | Yes |
 | `docker-scan` | [Trivy](https://aquasecurity.github.io/trivy/) | OS package + dependency CVEs *inside the built images* (base image, apk/npm packages) | Yes (image scans); the filesystem/misconfig scan in the same job is informational only |
@@ -68,7 +72,7 @@ for `main` to make it a hard gate:
    Code Owners**
 3. Enable **Require status checks to pass before merging** and select the
    jobs above (`secret-scan`, `backend-build`, `frontend-build`,
-   `dependency-scan`, `sast-codeql`, `docker-scan`)
+   `backend-test`, `dependency-scan`, `sast-codeql`, `docker-scan`)
 
 This has to be done once in the repo settings — GitHub doesn't let a
 committed file turn on branch protection by itself.
@@ -97,6 +101,10 @@ What Claude actually runs when asked (the same underlying commands Path A's
 # Type-check
 (cd backend && npm run build)
 (cd frontend && npm run check && npm run build)
+
+# Integration tests (needs a Postgres reachable at backend/.env.test's
+# DATABASE_URL — docker compose up -d postgres is enough)
+(cd backend && npm test)
 
 # Dependency scan
 (cd backend && npm audit --audit-level=high)

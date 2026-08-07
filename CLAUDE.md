@@ -236,3 +236,24 @@ string's leading character matters to Excel, matching how `safeCell` checks
 it. `exportPdf.ts` intentionally skips this: pdfkit draws the same strings as
 literal text, never as spreadsheet formulas, so escaping there would just
 leave a stray visible apostrophe with no security benefit.
+
+**CSRF token rotates, so it's returned in the response body, not just the
+cookie.** `setAuthCookies`/`setPreAuthCookie` (`utils/cookies.ts`) call
+`setCsrfCookie` (`utils/csrf.ts`) and return the new token; every route that
+calls them (`/login`, `/2fa/setup/confirm`, `/2fa/verify`, `/refresh`)
+includes that token as `csrfToken` in its JSON response. This is load-bearing,
+not incidental: `requireCsrf` (`middleware/csrf.ts`, mounted globally on
+`/api` in `app.ts`) rejects any mutating request whose `X-CSRF-Token` header
+doesn't match the `ropa_csrf` cookie, and since the token rotates on every
+privilege change, a client that only read the token once at page load would
+start failing right after its next login/refresh — both `lib/api/client.ts`
+(frontend) and `src/__tests__/helpers.ts::csrfAgent` (tests) re-cache the
+token from each such response's body for this reason. `GET /auth/csrf-token`
+exists solely so a client with no session yet (e.g. the login page) has
+something to fetch before its first mutating request.
+
+**Rate limiting is layered, not just on `/auth/*`.** `apiLimiter`
+(`middleware/rateLimit.ts`) is mounted globally on `/api` in `app.ts` — this
+exists specifically to satisfy CodeQL's missing-rate-limiting check on every
+route, not just auth. `loginLimiter`/`twoFaLimiter` are stacked on top of it
+for the specific endpoints worth limiting more tightly.

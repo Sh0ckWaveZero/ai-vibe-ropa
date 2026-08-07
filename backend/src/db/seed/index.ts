@@ -1,47 +1,11 @@
 import { prisma } from '../prisma.js';
-import { PERMISSIONS, DEFAULT_ROLES, DEFAULT_DEPARTMENTS } from '../../constants/permissions.js';
+import { seedBaseData } from './seedBaseData.js';
 import { hashPassword } from '../../utils/password.js';
 import { env } from '../../config/env.js';
 
 async function main() {
-  console.log('Seeding permissions...');
-  for (const p of PERMISSIONS) {
-    await prisma.permission.upsert({
-      where: { code: p.code },
-      update: {
-        module: p.module,
-        action: p.action,
-        descriptionTh: p.descriptionTh,
-        descriptionEn: p.descriptionEn,
-        descriptionZh: p.descriptionZh,
-      },
-      create: p,
-    });
-  }
-
-  console.log('Seeding roles + permission matrix...');
-  for (const r of DEFAULT_ROLES) {
-    const role = await prisma.role.upsert({
-      where: { code: r.code },
-      update: { nameTh: r.nameTh, nameEn: r.nameEn, nameZh: r.nameZh, isSystem: r.isSystem },
-      create: { code: r.code, nameTh: r.nameTh, nameEn: r.nameEn, nameZh: r.nameZh, isSystem: r.isSystem },
-    });
-
-    const permissions = await prisma.permission.findMany({ where: { code: { in: r.permissions as string[] } } });
-    await prisma.rolePermission.deleteMany({ where: { roleId: role.id } });
-    await prisma.rolePermission.createMany({
-      data: permissions.map((p) => ({ roleId: role.id, permissionId: p.id })),
-    });
-  }
-
-  console.log('Seeding departments...');
-  for (const d of DEFAULT_DEPARTMENTS) {
-    await prisma.department.upsert({
-      where: { code: d.code },
-      update: { nameTh: d.nameTh, nameEn: d.nameEn, nameZh: d.nameZh },
-      create: d,
-    });
-  }
+  console.log('Seeding permissions, roles, and departments...');
+  await seedBaseData();
 
   console.log('Seeding bootstrap admin user...');
   const superAdminRole = await prisma.role.findUnique({ where: { code: 'super_admin' } });

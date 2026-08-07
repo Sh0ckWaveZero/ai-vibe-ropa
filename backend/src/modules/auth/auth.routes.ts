@@ -2,6 +2,7 @@ import { Router } from 'express';
 import { z } from 'zod';
 import * as authService from './auth.service.js';
 import { setAuthCookies, clearAuthCookies, setPreAuthCookie, clearPreAuthCookie } from '../../utils/cookies.js';
+import { setCsrfCookie, CSRF_COOKIE } from '../../utils/csrf.js';
 import { asyncHandler } from '../../utils/asyncHandler.js';
 import { AppError } from '../../utils/AppError.js';
 import { requireAuth } from '../../middleware/auth.js';
@@ -10,6 +11,14 @@ import { loginLimiter, twoFaLimiter } from '../../middleware/rateLimit.js';
 import { logAudit } from '../../utils/audit.js';
 
 const router = Router();
+
+// Public, safe (GET) — lets the frontend obtain a CSRF token before it has
+// any session at all (e.g. on the login page). The double-submit cookie
+// this sets is re-issued on every login/2FA-completion/refresh too.
+router.get('/csrf-token', (_req, res) => {
+  const csrfToken = setCsrfCookie(res);
+  res.json({ csrfToken });
+});
 
 const loginSchema = z.object({
   email: z.string().email(),
@@ -22,9 +31,9 @@ router.post(
   asyncHandler(async (req, res) => {
     const { email, password } = loginSchema.parse(req.body);
     const result = await authService.login(email, password);
-    setPreAuthCookie(res, result.preAuthToken);
+    const csrfToken = setPreAuthCookie(res, result.preAuthToken);
     await logAudit({ action: 'auth.login_password_verified', entityType: 'User', metadata: { email }, req });
-    res.json({ stage: result.stage });
+    res.json({ stage: result.stage, csrfToken });
   })
 );
 
@@ -48,9 +57,9 @@ router.post(
     const userId = req.preAuthUserId!;
     const result = await authService.confirmTotpSetup(userId, code);
     clearPreAuthCookie(res);
-    setAuthCookies(res, result.accessToken, result.refreshToken);
+    const csrfToken = setAuthCookies(res, result.accessToken, result.refreshToken);
     await logAudit({ userId, action: 'auth.2fa_setup_complete', entityType: 'User', entityId: userId, req });
-    res.json({ stage: 'complete', user: result.user, backupCodes: result.backupCodes });
+    res.json({ stage: 'complete', user: result.user, backupCodes: result.backupCodes, csrfToken });
   })
 );
 
@@ -63,9 +72,9 @@ router.post(
     const userId = req.preAuthUserId!;
     const result = await authService.verifyTotpOrBackupCode(userId, code);
     clearPreAuthCookie(res);
-    setAuthCookies(res, result.accessToken, result.refreshToken);
+    const csrfToken = setAuthCookies(res, result.accessToken, result.refreshToken);
     await logAudit({ userId, action: 'auth.2fa_verify_success', entityType: 'User', entityId: userId, req });
-    res.json({ stage: 'complete', user: result.user });
+    res.json({ stage: 'complete', user: result.user, csrfToken });
   })
 );
 
@@ -85,8 +94,8 @@ router.post(
     const rawRefreshToken = req.cookies?.ropa_rt;
     if (!rawRefreshToken) throw AppError.unauthorized('Missing refresh token', 'NO_REFRESH_TOKEN');
     const result = await authService.refresh(rawRefreshToken);
-    setAuthCookies(res, result.accessToken, result.refreshToken);
-    res.json({ ok: true });
+    const csrfToken = setAuthCookies(res, result.accessToken, result.refreshToken);
+    res.json({ ok: true, csrfToken });
   })
 );
 
@@ -96,6 +105,7 @@ router.post(
     const rawRefreshToken = req.cookies?.ropa_rt;
     await authService.logout(rawRefreshToken);
     clearAuthCookies(res);
+    res.clearCookie(CSRF_COOKIE, { path: '/' });
     res.json({ ok: true });
   })
 );

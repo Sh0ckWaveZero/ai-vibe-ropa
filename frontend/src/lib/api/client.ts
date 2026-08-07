@@ -9,15 +9,49 @@ export class ApiError extends Error {
   }
 }
 
+const MUTATING_METHODS = new Set(['POST', 'PUT', 'PATCH', 'DELETE']);
+
+// Double-submit CSRF token: the backend also sets a matching (non-httpOnly)
+// cookie, but the browser only *sends* it — reading it back and echoing it
+// as a header is what actually proves the request came from our own JS,
+// not a cross-site page. The token rotates on login/2FA-completion/refresh,
+// so every response that carries a fresh `csrfToken` updates the cache.
+let cachedCsrfToken: string | null = null;
+
+async function ensureCsrfToken(): Promise<string> {
+  if (cachedCsrfToken) return cachedCsrfToken;
+  const res = await fetch('/api/auth/csrf-token', { credentials: 'include' });
+  const body = (await res.json()) as { csrfToken: string };
+  cachedCsrfToken = body.csrfToken;
+  return cachedCsrfToken;
+}
+
+function captureRotatedToken(body: unknown) {
+  if (body && typeof body === 'object' && 'csrfToken' in body) {
+    const token = (body as { csrfToken?: unknown }).csrfToken;
+    if (typeof token === 'string' && token) cachedCsrfToken = token;
+  }
+}
+
 let refreshPromise: Promise<boolean> | null = null;
 
 async function tryRefresh(): Promise<boolean> {
   if (!refreshPromise) {
-    refreshPromise = fetch('/api/auth/refresh', { method: 'POST', credentials: 'include' })
-      .then((res) => res.ok)
-      .finally(() => {
-        refreshPromise = null;
+    refreshPromise = (async () => {
+      const token = await ensureCsrfToken();
+      const res = await fetch('/api/auth/refresh', {
+        method: 'POST',
+        credentials: 'include',
+        headers: { 'X-CSRF-Token': token },
       });
+      if (res.ok) {
+        const body = await parseBody(res);
+        captureRotatedToken(body);
+      }
+      return res.ok;
+    })().finally(() => {
+      refreshPromise = null;
+    });
   }
   return refreshPromise;
 }
@@ -38,20 +72,28 @@ async function handleResponse<T>(res: Response): Promise<T> {
     const err = (body as { error?: { code?: string; message?: string } } | null)?.error;
     throw new ApiError(res.status, err?.code ?? 'UNKNOWN', err?.message ?? `Request failed (${res.status})`);
   }
+  captureRotatedToken(body);
   return body as T;
 }
 
 export async function apiFetch<T = unknown>(path: string, init: RequestInit = {}): Promise<T> {
   const isAuthRoute = path === '/auth/refresh' || path === '/auth/login' || path === '/auth/logout';
-  const request = () =>
-    fetch(`/api${path}`, {
+  const method = (init.method ?? 'GET').toUpperCase();
+
+  const request = async () => {
+    const headers: Record<string, string> = {
+      ...(init.body ? { 'Content-Type': 'application/json' } : {}),
+      ...(init.headers as Record<string, string> | undefined),
+    };
+    if (MUTATING_METHODS.has(method)) {
+      headers['X-CSRF-Token'] = await ensureCsrfToken();
+    }
+    return fetch(`/api${path}`, {
       ...init,
       credentials: 'include',
-      headers: {
-        ...(init.body ? { 'Content-Type': 'application/json' } : {}),
-        ...(init.headers ?? {}),
-      },
+      headers,
     });
+  };
 
   let res = await request();
 
