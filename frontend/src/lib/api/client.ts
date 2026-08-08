@@ -108,5 +108,11 @@ export async function apiFetch<T = unknown>(path: string, init: RequestInit = {}
     }
   }
 
-  return handleResponse<T>(res);
+  const body = await handleResponse<T>(res);
+
+  // Logout removes the CSRF cookie. Drop its in-memory counterpart as well so
+  // the next mutating request obtains a fresh matching cookie/token pair.
+  if (path === '/auth/logout') cachedCsrfToken = null;
+
+  return body;
 }
