@@ -12,7 +12,7 @@
 
 <div {id} class="flex min-h-screen flex-col bg-surface">
   <div class="flex items-center justify-end gap-2 p-4">
-    <LanguageSelector />
+    <LanguageSelector id="auth-language-selector" />
     <button
       onclick={toggleTheme}
       class="flex size-11 shrink-0 items-center justify-center rounded-md text-body hover:bg-surface-muted"

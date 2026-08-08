@@ -54,7 +54,7 @@
   <div class="hidden md:block"></div>
 
   <div class="flex items-center gap-1 sm:gap-2">
-    <LanguageSelector />
+    <LanguageSelector id="topbar-language-selector" />
 
     <NotificationBell />
 

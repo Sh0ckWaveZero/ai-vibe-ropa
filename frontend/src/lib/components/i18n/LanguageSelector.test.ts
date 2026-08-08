@@ -14,6 +14,8 @@ describe('LanguageSelector', () => {
     render(LanguageSelectorHarness);
 
     const trigger = screen.getByRole('button', { name: 'Change language. Current language: English' });
+    expect(document.getElementById('test-language-selector')).toBeInTheDocument();
+    expect(trigger).toHaveAttribute('id', 'test-language-selector-trigger');
     expect(trigger).toHaveAttribute('aria-expanded', 'false');
     expect(trigger).toHaveTextContent('English');
 
@@ -21,8 +23,13 @@ describe('LanguageSelector', () => {
 
     const listbox = screen.getByRole('listbox', { name: 'Choose a language' });
     expect(listbox).toBeInTheDocument();
+    expect(listbox).toHaveAttribute('id', 'test-language-selector-listbox');
     expect(trigger).toHaveAttribute('aria-controls', listbox.id);
-    expect(screen.getByRole('option', { name: 'English' })).toHaveAttribute('aria-selected', 'true');
+    const englishOption = screen.getByRole('option', { name: 'English' });
+    expect(englishOption).toHaveAttribute('id', 'test-language-selector-option-en');
+    expect(englishOption).toHaveAttribute('aria-selected', 'true');
+    expect(screen.getByRole('option', { name: 'ไทย' })).toHaveAttribute('id', 'test-language-selector-option-th');
+    expect(screen.getByRole('option', { name: '中文' })).toHaveAttribute('id', 'test-language-selector-option-zh');
   });
 
   it('supports arrow navigation and Enter selection', async () => {

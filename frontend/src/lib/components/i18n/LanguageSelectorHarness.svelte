@@ -7,6 +7,6 @@
   createLocaleContext(() => initialLocale);
 </script>
 
-<LanguageSelector />
+<LanguageSelector id="test-language-selector" />
 <button type="button">Outside target</button>
 <div data-testid="outside-surface">Outside surface</div>

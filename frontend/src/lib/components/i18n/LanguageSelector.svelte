@@ -2,9 +2,11 @@
   import { tick } from 'svelte';
   import { getLocaleContext, LOCALES, LOCALE_LABELS, setLocaleCookie, type Locale } from '$lib/i18n';
 
+  let { id }: { id: string } = $props();
+
   const { locale, t } = getLocaleContext();
-  const componentId = $props.id();
-  const menuId = `${componentId}-menu`;
+  const triggerId = $derived(`${id}-trigger`);
+  const listboxId = $derived(`${id}-listbox`);
 
   let rootElement: HTMLDivElement;
   let triggerElement: HTMLButtonElement;
@@ -103,15 +105,16 @@
 
 <svelte:document onpointerdown={handleDocumentPointerDown} onclick={handleDocumentClick} />
 
-<div class="relative" bind:this={rootElement} onfocusout={handleFocusOut}>
+<div {id} class="relative" bind:this={rootElement} onfocusout={handleFocusOut}>
   <button
+    id={triggerId}
     bind:this={triggerElement}
     type="button"
     class="inline-flex min-h-11 min-w-11 items-center justify-center gap-2 rounded-lg border border-border bg-surface-raised px-3 text-sm font-medium text-body shadow-sm transition-colors hover:border-primary/50 hover:bg-surface-muted focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
     aria-label={$t('language.selectorLabel', { language: LOCALE_LABELS[$locale] })}
     aria-haspopup="listbox"
     aria-expanded={open}
-    aria-controls={menuId}
+    aria-controls={listboxId}
     onclick={() => (open ? closeMenu() : openMenu())}
     onkeydown={handleTriggerKeydown}
   >
@@ -145,13 +148,14 @@
 
   {#if open}
     <div
-      id={menuId}
+      id={listboxId}
       role="listbox"
       aria-label={$t('language.menuLabel')}
       class="absolute right-0 z-[60] mt-2 min-w-44 overflow-hidden rounded-xl border border-border bg-surface-raised p-1.5 shadow-xl shadow-black/10"
     >
       {#each LOCALES as optionLocale, index (optionLocale)}
         <button
+          id={`${id}-option-${optionLocale}`}
           bind:this={optionElements[index]}
           type="button"
           role="option"
