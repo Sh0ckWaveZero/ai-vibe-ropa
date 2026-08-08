@@ -3,7 +3,7 @@
   import { getLocaleContext, setLocaleCookie, LOCALES, LOCALE_LABELS, type Locale } from '$lib/i18n';
   import { theme, toggleTheme } from '$lib/stores/theme';
 
-  let { title, subtitle, children }: { title: string; subtitle?: string; children: Snippet } = $props();
+  let { id, title, subtitle, children }: { id?: string; title: string; subtitle?: string; children: Snippet } = $props();
 
   const { locale, t } = getLocaleContext();
 
@@ -13,7 +13,7 @@
   }
 </script>
 
-<div class="flex min-h-screen flex-col bg-surface">
+<div {id} class="flex min-h-screen flex-col bg-surface">
   <div class="flex items-center justify-end gap-2 p-4">
     <div class="flex items-center rounded-md border border-border p-0.5 text-xs">
       {#each LOCALES as loc (loc)}
