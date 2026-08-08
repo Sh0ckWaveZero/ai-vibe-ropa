@@ -1,6 +1,13 @@
 <script lang="ts">
   import { tick } from 'svelte';
-  import { getLocaleContext, LOCALES, LOCALE_LABELS, setLocaleCookie, type Locale } from '$lib/i18n';
+  import {
+    getLocaleContext,
+    LOCALES,
+    LOCALE_COUNTRY_CODES,
+    LOCALE_LABELS,
+    setLocaleCookie,
+    type Locale,
+  } from '$lib/i18n';
 
   let { id }: { id: string } = $props();
 
@@ -118,17 +125,11 @@
     onclick={() => (open ? closeMenu() : openMenu())}
     onkeydown={handleTriggerKeydown}
   >
-    <svg
-      viewBox="0 0 24 24"
-      class="size-5 shrink-0 text-primary"
-      fill="none"
-      stroke="currentColor"
-      stroke-width="1.8"
+    <span
+      id={`${id}-current-flag`}
+      class={`fi fi-${LOCALE_COUNTRY_CODES[$locale]} shrink-0 overflow-hidden rounded-[2px] bg-white text-lg shadow-[inset_0_0_0_1px_rgba(0,0,0,0.12)]`}
       aria-hidden="true"
-    >
-      <circle cx="12" cy="12" r="9" />
-      <path d="M3.5 9h17M3.5 15h17M12 3c2.1 2.45 3.2 5.45 3.2 9S14.1 18.55 12 21M12 3C9.9 5.45 8.8 8.45 8.8 12s1.1 6.55 3.2 9" />
-    </svg>
+    ></span>
     <span lang={$locale}>{LOCALE_LABELS[$locale]}</span>
     <svg
       viewBox="0 0 20 20"
@@ -169,6 +170,12 @@
           onfocus={() => (activeIndex = index)}
           onkeydown={(event) => handleOptionKeydown(event, index)}
         >
+          <span
+            id={`${id}-option-${optionLocale}-flag`}
+            class={`fi fi-${LOCALE_COUNTRY_CODES[optionLocale]} shrink-0 overflow-hidden rounded-[2px] bg-white text-lg shadow-[inset_0_0_0_1px_rgba(0,0,0,0.12)]`}
+            aria-hidden="true"
+          ></span>
+          <span class="flex-1" lang={optionLocale}>{LOCALE_LABELS[optionLocale]}</span>
           <span class="flex size-5 shrink-0 items-center justify-center" aria-hidden="true">
             {#if $locale === optionLocale}
               <svg viewBox="0 0 20 20" class="size-4" fill="currentColor">
@@ -180,7 +187,6 @@
               </svg>
             {/if}
           </span>
-          <span lang={optionLocale}>{LOCALE_LABELS[optionLocale]}</span>
         </button>
       {/each}
     </div>

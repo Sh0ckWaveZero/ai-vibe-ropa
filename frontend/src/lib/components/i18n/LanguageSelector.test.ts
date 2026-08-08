@@ -16,6 +16,9 @@ describe('LanguageSelector', () => {
     const trigger = screen.getByRole('button', { name: 'Change language. Current language: English' });
     expect(document.getElementById('test-language-selector')).toBeInTheDocument();
     expect(trigger).toHaveAttribute('id', 'test-language-selector-trigger');
+    const currentFlag = document.getElementById('test-language-selector-current-flag');
+    expect(currentFlag).toHaveClass('fi', 'fi-gb');
+    expect(currentFlag).toHaveAttribute('aria-hidden', 'true');
     expect(trigger).toHaveAttribute('aria-expanded', 'false');
     expect(trigger).toHaveTextContent('English');
 
@@ -30,6 +33,9 @@ describe('LanguageSelector', () => {
     expect(englishOption).toHaveAttribute('aria-selected', 'true');
     expect(screen.getByRole('option', { name: 'ไทย' })).toHaveAttribute('id', 'test-language-selector-option-th');
     expect(screen.getByRole('option', { name: '中文' })).toHaveAttribute('id', 'test-language-selector-option-zh');
+    expect(document.getElementById('test-language-selector-option-th-flag')).toHaveClass('fi', 'fi-th');
+    expect(document.getElementById('test-language-selector-option-en-flag')).toHaveClass('fi', 'fi-gb');
+    expect(document.getElementById('test-language-selector-option-zh-flag')).toHaveClass('fi', 'fi-cn');
   });
 
   it('supports arrow navigation and Enter selection', async () => {
@@ -47,6 +53,7 @@ describe('LanguageSelector', () => {
 
     expect(screen.queryByRole('listbox')).not.toBeInTheDocument();
     expect(screen.getByRole('button', { name: '切换语言。当前语言：中文' })).toHaveFocus();
+    expect(document.getElementById('test-language-selector-current-flag')).toHaveClass('fi', 'fi-cn');
     expect(document.cookie).toContain('ropa_locale=zh');
     expect(document.documentElement.lang).toBe('zh');
   });

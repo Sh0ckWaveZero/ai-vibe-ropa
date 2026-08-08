@@ -1,4 +1,5 @@
 <script lang="ts">
+  import 'flag-icons/css/flag-icons.min.css';
   import '../app.css';
   import { createLocaleContext } from '$lib/i18n';
   import type { LayoutData } from './$types';
