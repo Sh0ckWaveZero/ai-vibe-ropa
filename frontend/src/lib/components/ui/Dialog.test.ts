@@ -61,7 +61,7 @@ describe('Dialog', () => {
     expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
   });
 
-  it('dismisses from the backdrop without treating the dialog surface as backdrop', async () => {
+  it('does not dismiss when the backdrop is clicked', async () => {
     const user = userEvent.setup();
     render(DialogHarness);
 
@@ -69,13 +69,11 @@ describe('Dialog', () => {
     await user.click(opener);
     await user.click(screen.getByRole('button', { name: 'Open logout dialog' }));
     const dialog = screen.getByRole('dialog', { name: 'Confirm logout' });
-    dialog.getBoundingClientRect = () =>
-      ({ top: 100, right: 500, bottom: 400, left: 100, width: 400, height: 300, x: 100, y: 100, toJSON() {} }) as DOMRect;
-
-    await fireEvent.click(dialog, { clientX: 200, clientY: 200 });
+    expect(dialog).toHaveAttribute('closedby', 'closerequest');
+    await fireEvent.click(dialog, { clientX: 20, clientY: 20 });
     expect(dialog).toHaveAttribute('open');
 
-    await fireEvent.click(dialog, { clientX: 20, clientY: 20 });
+    await user.click(screen.getByRole('button', { name: 'Cancel' }));
     await waitFor(() => expect(screen.queryByRole('dialog')).not.toBeInTheDocument());
     expect(opener).toHaveFocus();
   });

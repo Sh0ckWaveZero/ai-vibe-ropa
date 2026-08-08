@@ -72,26 +72,14 @@
     });
   }
 
-  function onDialogClick(event: MouseEvent) {
-    if (event.target !== dialogEl || !dialogEl) return;
-
-    const bounds = dialogEl.getBoundingClientRect();
-    const isDialogSurface =
-      bounds.top <= event.clientY &&
-      event.clientY <= bounds.bottom &&
-      bounds.left <= event.clientX &&
-      event.clientX <= bounds.right;
-    if (!isDialogSurface) onClose();
-  }
 </script>
 
 <dialog
   id={dialogId}
   bind:this={dialogEl}
   aria-labelledby={titleId}
-  closedby="any"
+  closedby="closerequest"
   onclose={onClose}
-  onclick={onDialogClick}
   class="fixed inset-0 m-auto h-fit max-h-[calc(100dvh-2rem)] w-[calc(100%-2rem)] max-w-md overflow-y-auto rounded-lg border border-border bg-surface-raised p-0 text-body backdrop:bg-black/50 {className}"
 >
   <div class="border-b border-border px-5 py-3 {headerClass}">
