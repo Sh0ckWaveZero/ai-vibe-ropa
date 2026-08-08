@@ -68,7 +68,7 @@ export const th: Dictionary = {
     setupSubtitle: 'สแกน QR โค้ดด้วยแอปยืนยันตัวตน (Google Authenticator, Authy ฯลฯ)',
     scanQr: 'สแกน QR โค้ดนี้',
     manualEntryHint: 'สแกนไม่ได้? กรอกโค้ดนี้ด้วยตนเอง:',
-    showSetupSecret: 'แสดงคีย์ตั้งค่า',
+    showSetupSecret: 'แสดง',
     hideSetupSecret: 'ซ่อนคีย์ตั้งค่า',
     copySetupSecret: 'คัดลอก',
     setupSecretCopied: 'คัดลอกคีย์แล้ว',
