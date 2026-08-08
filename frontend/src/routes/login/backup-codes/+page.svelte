@@ -36,18 +36,19 @@
   }
 </script>
 
-<AuthPageShell title={$t('twoFactor.backupCodesTitle')} subtitle={$t('twoFactor.backupCodesSubtitle')}>
+<AuthPageShell id="backup-codes-page" title={$t('twoFactor.backupCodesTitle')} subtitle={$t('twoFactor.backupCodesSubtitle')}>
   {#if $pendingBackupCodes}
-    <div class="flex flex-col gap-4">
-      <Button variant="ghost" onclick={() => window.history.back()} class="-ml-2 min-h-11 self-start">
+    <div id="backup-codes-content" class="flex flex-col gap-4">
+      <Button id="backup-codes-back-button" variant="ghost" onclick={() => window.history.back()} class="-ml-2 min-h-11 self-start">
         <svg viewBox="0 0 20 20" class="size-4" fill="none" stroke="currentColor" stroke-width="1.75" aria-hidden="true">
           <path d="m12.5 15-5-5 5-5" stroke-linecap="round" stroke-linejoin="round" />
         </svg>
         {$t('common.back')}
       </Button>
 
-      <div class="grid grid-cols-1 gap-2 min-[360px]:grid-cols-2">
+      <div id="backup-codes-actions" class="grid grid-cols-1 gap-2 min-[360px]:grid-cols-2">
         <Button
+          id="backup-codes-visibility-button"
           variant="secondary"
           onclick={() => (codesVisible = !codesVisible)}
           aria-controls="backup-codes-list"
@@ -67,7 +68,7 @@
             {$t('twoFactor.showBackupCodes')}
           {/if}
         </Button>
-        <Button variant="secondary" onclick={downloadCodes} class="min-h-11">
+        <Button id="backup-codes-download-button" variant="secondary" onclick={downloadCodes} class="min-h-11">
           <svg viewBox="0 0 20 20" class="size-4" fill="none" stroke="currentColor" stroke-width="1.75" aria-hidden="true">
             <path d="M10 3v9m0 0 3.5-3.5M10 12 6.5 8.5M4 15.5h12" stroke-linecap="round" stroke-linejoin="round" />
           </svg>
@@ -83,11 +84,11 @@
           ? 'select-text'
           : 'pointer-events-none select-none blur-sm opacity-50'}"
       >
-        {#each $pendingBackupCodes as code (code)}
-          <div class="text-center">{code}</div>
+        {#each $pendingBackupCodes as code, index (code)}
+          <div id={`backup-code-${index + 1}`} class="text-center">{code}</div>
         {/each}
       </div>
-      <Button onclick={acknowledge} class="w-full">{$t('twoFactor.savedCodesConfirm')}</Button>
+      <Button id="backup-codes-confirm-button" onclick={acknowledge} class="w-full">{$t('twoFactor.savedCodesConfirm')}</Button>
     </div>
   {/if}
 </AuthPageShell>

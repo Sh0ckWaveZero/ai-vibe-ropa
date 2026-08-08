@@ -21,9 +21,18 @@ describe('Backup codes page', () => {
   it('blurs and hides the backup codes from assistive technology by default', () => {
     render(BackupCodesPageHarness);
 
+    expect(document.getElementById('backup-codes-page')).toBeInTheDocument();
+    expect(document.getElementById('backup-codes-content')).toBeInTheDocument();
+    expect(document.getElementById('backup-codes-actions')).toBeInTheDocument();
     expect(screen.getByTestId('backup-codes-list')).toHaveClass('blur-sm', 'select-none');
     expect(screen.getByTestId('backup-codes-list')).toHaveAttribute('aria-hidden', 'true');
+    expect(screen.getByRole('button', { name: 'Show backup codes' })).toHaveAttribute('id', 'backup-codes-visibility-button');
     expect(screen.getByRole('button', { name: 'Show backup codes' })).toHaveAttribute('aria-expanded', 'false');
+    expect(screen.getByRole('button', { name: 'Back' })).toHaveAttribute('id', 'backup-codes-back-button');
+    expect(screen.getByRole('button', { name: 'Download backup codes' })).toHaveAttribute('id', 'backup-codes-download-button');
+    expect(screen.getByRole('button', { name: "I've saved these codes" })).toHaveAttribute('id', 'backup-codes-confirm-button');
+    expect(document.getElementById('backup-code-1')).toHaveTextContent(codes[0]);
+    expect(document.getElementById('backup-code-2')).toHaveTextContent(codes[1]);
   });
 
   it('reveals and hides the codes with an accessible toggle', async () => {

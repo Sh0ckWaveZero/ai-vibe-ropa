@@ -89,9 +89,9 @@ export const th: Dictionary = {
     backupCodesTitle: 'บันทึกรหัสสำรองของคุณ',
     backupCodesSubtitle:
       'รหัสแต่ละชุดใช้ได้ครั้งเดียว สำหรับกรณีที่คุณเข้าถึงแอปยืนยันตัวตนไม่ได้ กรุณาเก็บรักษาไว้ในที่ปลอดภัย ระบบจะไม่แสดงรหัสเหล่านี้อีก',
-    showBackupCodes: 'แสดงรหัสสำรอง',
+    showBackupCodes: 'แสดง',
     hideBackupCodes: 'ซ่อนรหัสสำรอง',
-    downloadBackupCodes: 'ดาวน์โหลดรหัสสำรอง',
+    downloadBackupCodes: 'ดาวน์โหลด',
     savedCodesConfirm: 'ฉันได้บันทึกรหัสเหล่านี้แล้ว',
     sessionExpiredRedirect: 'เซสชันหมดอายุ กำลังกลับไปหน้าเข้าสู่ระบบ...',
     regenerateBackupCodes: 'สร้างรหัสสำรองใหม่',
