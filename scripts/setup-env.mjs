@@ -16,6 +16,32 @@ const PROFILES = {
   stg: { nodeEnv: 'production', frontendPort: 3000 },
   prod: { nodeEnv: 'production', frontendPort: 3000 },
 };
+const LOGO_LINES = [
+  '██████╗  ██████╗ ██████╗  █████╗',
+  '██╔══██╗██╔═══██╗██╔══██╗██╔══██╗',
+  '██████╔╝██║   ██║██████╔╝███████║',
+  '██╔══██╗██║   ██║██╔═══╝ ██╔══██║',
+  '██║  ██║╚██████╔╝██║     ██║  ██║',
+  '╚═╝  ╚═╝ ╚═════╝ ╚═╝     ╚═╝  ╚═╝',
+];
+const LOGO_COLORS = [
+  '38;2;34;211;238',
+  '38;2;45;202;232',
+  '38;2;99;179;237',
+  '38;2;139;148;244',
+  '38;2;168;123;250',
+  '38;2;192;96;255',
+];
+
+export function renderBanner({ color = false } = {}) {
+  const logo = LOGO_LINES.map((line, index) =>
+    color ? `\u001B[${LOGO_COLORS[index]}m${line}\u001B[0m` : line,
+  ).join('\n');
+  const subtitle = 'Environment Setup  •  local / qa / stg / prod';
+  return color
+    ? `${logo}\n\u001B[2m${subtitle}\u001B[0m\n\n`
+    : `${logo}\n${subtitle}\n\n`;
+}
 
 function usage() {
   return `Usage: npm run env:setup -- [current|local|qa|stg|prod] [--force] [--run]
@@ -100,6 +126,7 @@ async function promptForEnvironment({ rootDir = REPO_ROOT, input = process.stdin
   const prompt = createInterface({ input, output });
 
   try {
+    output.write(renderBanner({ color: Boolean(output.isTTY && !process.env.NO_COLOR) }));
     output.write(`Current environment: ${currentEnvironment}\n`);
     output.write(`1) current (${currentEnvironment})\n2) local\n3) qa\n4) stg\n5) prod\n`);
     const answer = await prompt.question('Select environment [1]: ');

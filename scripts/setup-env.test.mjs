@@ -9,6 +9,7 @@ import {
   detectCurrentEnvironment,
   isConfirmed,
   parseArgs,
+  renderBanner,
   resolveEnvironmentSelection,
   runApplication,
   writeEnvironmentFiles,
@@ -124,6 +125,17 @@ test('supports interactive choices and confirmation', () => {
   assert.equal(isConfirmed('y'), true);
   assert.equal(isConfirmed('YES'), true);
   assert.equal(isConfirmed('n'), false);
+});
+
+test('renders a readable ROPA banner with optional terminal color', () => {
+  const plain = renderBanner();
+  const colored = renderBanner({ color: true });
+
+  assert.match(plain, /██████╗/);
+  assert.match(plain, /Environment Setup/);
+  assert.doesNotMatch(plain, /\u001B\[/);
+  assert.match(colored, /\u001B\[38;2;/);
+  assert.match(colored, /\u001B\[2mEnvironment Setup/);
 });
 
 test('runs the root dev script when requested', async () => {
