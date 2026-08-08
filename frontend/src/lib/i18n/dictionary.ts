@@ -66,6 +66,11 @@ export interface Dictionary {
     setupSubtitle: string;
     scanQr: string;
     manualEntryHint: string;
+    showSetupSecret: string;
+    hideSetupSecret: string;
+    copySetupSecret: string;
+    setupSecretCopied: string;
+    setupSecretCopyFailed: string;
     enterCode: string;
     codePlaceholder: string;
     confirmSetup: string;
@@ -81,6 +86,9 @@ export interface Dictionary {
     invalidCode: string;
     backupCodesTitle: string;
     backupCodesSubtitle: string;
+    showBackupCodes: string;
+    hideBackupCodes: string;
+    downloadBackupCodes: string;
     savedCodesConfirm: string;
     sessionExpiredRedirect: string;
     regenerateBackupCodes: string;

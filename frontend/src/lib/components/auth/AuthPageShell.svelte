@@ -12,6 +12,12 @@
 
 <svelte:head>
   <title>{title} | ROPA</title>
+  <meta data-auth-page-meta name="description" content={subtitle ?? title} />
+  <meta data-auth-page-meta name="application-name" content="ROPA" />
+  <meta data-auth-page-meta name="theme-color" content={$theme === 'dark' ? '#0a0a0a' : '#fafafa'} />
+  <meta data-auth-page-meta property="og:title" content={`${title} | ROPA`} />
+  <meta data-auth-page-meta property="og:description" content={subtitle ?? title} />
+  <meta data-auth-page-meta property="og:type" content="website" />
 </svelte:head>
 
 <div {id} class="flex min-h-screen flex-col bg-surface">
@@ -42,8 +48,19 @@
   <main id="main-content" tabindex="-1" class="flex flex-1 items-center justify-center px-4 pb-16 focus:outline-none">
     <div class="w-full max-w-sm">
       <div class="mb-6 text-center">
-        <div class="mx-auto mb-3 flex size-12 items-center justify-center rounded-full bg-primary/10">
-          <span class="size-3 rounded-full bg-primary" aria-hidden="true"></span>
+        <div class="mb-4 flex flex-col items-center gap-2">
+          <div class="rounded-2xl bg-white p-2 shadow-sm ring-1 ring-black/5">
+            <img
+              src="/ropa-logo.png"
+              alt=""
+              width="64"
+              height="64"
+              class="size-16"
+              loading="eager"
+              decoding="async"
+            />
+          </div>
+          <span class="text-sm font-semibold tracking-[0.24em] text-body">ROPA</span>
         </div>
         <h1 class="text-xl font-semibold text-body">{title}</h1>
         {#if subtitle}

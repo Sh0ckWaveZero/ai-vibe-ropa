@@ -13,7 +13,9 @@ interface LocaleContext {
   t: Readable<Translate>;
 }
 
-const CONTEXT_KEY = Symbol('ropa:locale');
+// Vite can reload providers and consumers as separate module instances during
+// hydration/HMR, so the context key must retain its identity across reloads.
+export const LOCALE_CONTEXT_KEY = Symbol.for('ropa:locale');
 
 function translate(locale: Locale, path: string, params?: Record<string, string | number>): string {
   const segments = path.split('.');
@@ -41,12 +43,12 @@ export function createLocaleContext(getInitial: () => Locale): LocaleContext {
     return (path, params) => translate($locale, path, params);
   });
   const context: LocaleContext = { locale, t };
-  setContext(CONTEXT_KEY, context);
+  setContext(LOCALE_CONTEXT_KEY, context);
   return context;
 }
 
 export function getLocaleContext(): LocaleContext {
-  const ctx = getContext<LocaleContext>(CONTEXT_KEY);
+  const ctx = getContext<LocaleContext>(LOCALE_CONTEXT_KEY);
   if (!ctx) throw new Error('Locale context not found. Call createLocaleContext() in the root layout.');
   return ctx;
 }
