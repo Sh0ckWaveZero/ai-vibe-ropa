@@ -7,7 +7,9 @@ export default defineConfig({
   server: {
     proxy: {
       '/api': {
-        target: process.env.BACKEND_ORIGIN ?? 'http://localhost:4000',
+        target:
+          process.env.BACKEND_ORIGIN ??
+          `http://${process.env.BACKEND_HOST ?? 'localhost'}:${process.env.BACKEND_PORT ?? '4000'}`,
         changeOrigin: true,
       },
     },

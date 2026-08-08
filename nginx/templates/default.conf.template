@@ -1,19 +1,17 @@
-# Rendered from this template by the official nginx image's docker-entrypoint
-# (envsubst on files under /etc/nginx/templates/*.template) — ${PUBLIC_HTTPS_PORT}
-# is substituted from the container's environment, everything else ($host,
-# $scheme, ...) are ordinary nginx runtime variables and are left alone.
+# The image entrypoint substitutes configured environment values while leaving
+# nginx variables such as $host and $scheme intact.
 
 server {
   listen 80;
   server_name _;
 
-  # Self-signed HTTPS is always on: plain HTTP just redirects.
   return 301 https://$host:${PUBLIC_HTTPS_PORT}$request_uri;
 }
 
 server {
   listen 443 ssl;
   server_name _;
+  client_max_body_size ${MAX_UPLOAD_SIZE_MB}m;
 
   ssl_certificate     /etc/nginx/certs/fullchain.pem;
   ssl_certificate_key /etc/nginx/certs/privkey.pem;
@@ -21,6 +19,12 @@ server {
   ssl_ciphers         HIGH:!aNULL:!MD5;
   ssl_session_cache   shared:SSL:10m;
   ssl_session_timeout 10m;
+
+  location = /health {
+    proxy_pass http://backend:4000/health;
+    proxy_set_header Host $host;
+    proxy_set_header X-Forwarded-Proto $scheme;
+  }
 
   location /api/ {
     proxy_pass http://backend:4000/api/;

@@ -20,9 +20,21 @@ HTTPS เสมอ, แนบไฟล์ประกอบและแจ้ง
 
 ## 🚀 เริ่มต้นใช้งานอย่างรวดเร็ว
 
+Docker Compose:
+
 ```bash
 cp .env.example .env      # ปรับ secrets ทั้งหมดตามคำแนะนำในไฟล์ (ดูด้านล่าง)
-docker compose up -d --build
+docker compose pull       # ดึงอิมเมจที่กำหนดไว้ให้เป็นปัจจุบัน
+docker compose up -d --build --wait
+```
+
+Apple Container ใช้คำสั่งต่อไปนี้แทน (ต้องติดตั้ง `container-compose`):
+
+```bash
+cp .env.example .env
+container-compose --file docker-compose.yml build
+container-compose --file docker-compose.yml up -d --env-file .env
+container list --all
 ```
 
 จากนั้นเปิด **https://localhost:8443** (หรือพอร์ตที่ตั้งไว้ใน `PUBLIC_HTTPS_PORT`) — ระบบ
@@ -106,7 +118,7 @@ Authenticator หรือ Authy) ก่อนเข้าใช้งานไ�
 - **เบราว์เซอร์ของผู้ใช้** จะคุยกับ origin เดียวเท่านั้น (ผ่าน nginx) ไม่ได้ยิงตรงไป
   backend เลย ทำให้ไม่ต้องตั้งค่า CORS ในระบบจริง
 - **การเรนเดอร์ฝั่งเซิร์ฟเวอร์ (SSR)** เช่นการตรวจสอบสถานะล็อกอินใน root layout
-  จะเรียก backend ตรงผ่านเครือข่ายภายในของ Docker (`BACKEND_ORIGIN`) และส่งต่อ
+  จะเรียก backend ตรงผ่านเครือข่ายภายใน (`BACKEND_HOST`/`BACKEND_PORT`) และส่งต่อ
   cookie ของ request เองด้วยมือ — ดูที่ `frontend/src/lib/server/backend.ts`
 - ส่วนที่เหลือ (หน้าจอ CRUD ต่าง ๆ) เรียก API ฝั่ง client ผ่าน path แบบ relative
   `/api/*` — ดูที่ `frontend/src/lib/api/client.ts` ซึ่งจัดการ refresh access
