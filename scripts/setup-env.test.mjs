@@ -1,32 +1,60 @@
 import assert from 'node:assert/strict';
-import { mkdtemp, readFile, rm } from 'node:fs/promises';
+import { mkdir, mkdtemp, readFile, rm, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import test from 'node:test';
 
 import { writeEnvironmentFiles } from './setup-env.mjs';
 
-test('creates scoped local environment files and refuses accidental overwrite', async () => {
+function sourceEnv(environment) {
+  return `POSTGRES_USER=ropa
+POSTGRES_PASSWORD=password-${environment}
+POSTGRES_DB=ropa_${environment}
+POSTGRES_HOST_PORT=6543
+BACKEND_PORT=4100
+FRONTEND_PORT=5100
+ACCESS_TOKEN_SECRET=access-token-secret-${environment}
+REFRESH_TOKEN_TTL_DAYS=7
+ACCESS_TOKEN_TTL_MIN=15
+PRE_AUTH_TOKEN_SECRET=pre-auth-token-secret-${environment}
+PRE_AUTH_TOKEN_TTL_MIN=5
+TOTP_ENCRYPTION_KEY=21f89afa9005d45a214308296c863ce8c07bfcfbff48639814083b60940bbb60
+TWOFA_ISSUER=ROPA ${environment}
+PUBLIC_ORIGIN=https://${environment}.ropa.example
+BACKEND_ORIGIN=https://api.${environment}.ropa.example
+CORS_ORIGIN=https://${environment}.ropa.example
+ADMIN_EMAIL=admin@ropa.local
+ADMIN_PASSWORD=ChangeMe123!
+UPLOAD_DIR=./uploads
+MAX_UPLOAD_SIZE_MB=10
+`;
+}
+
+test('reads root .env, creates only package files, and preserves the source', async () => {
   const rootDir = await mkdtemp(join(tmpdir(), 'ropa-env-local-'));
+  const source = sourceEnv('local');
 
   try {
+    await writeFile(join(rootDir, '.env'), source);
     const result = await writeEnvironmentFiles({ environment: 'local', rootDir });
-    assert.equal(result.paths.length, 3);
+    assert.equal(result.paths.length, 2);
 
-    const [rootEnv, backendEnv, frontendEnv] = await Promise.all([
+    const [sourceAfter, backendEnv, frontendEnv] = await Promise.all([
       readFile(join(rootDir, '.env'), 'utf8'),
       readFile(join(rootDir, 'backend/.env'), 'utf8'),
       readFile(join(rootDir, 'frontend/.env'), 'utf8'),
     ]);
 
-    assert.match(rootEnv, /APP_ENV=local/);
-    assert.match(backendEnv, /DATABASE_URL=postgresql:\/\/ropa:ropa@localhost:5433\/ropa\?schema=public/);
-    assert.match(backendEnv, /TOTP_ENCRYPTION_KEY=[0-9a-f]{64}/);
-    assert.match(frontendEnv, /BACKEND_ORIGIN=http:\/\/localhost:4000/);
+    assert.equal(sourceAfter, source);
+    assert.match(backendEnv, /NODE_ENV=development/);
+    assert.match(backendEnv, /DATABASE_URL=postgresql:\/\/ropa:password-local@localhost:6543\/ropa_local\?schema=public/);
+    assert.match(backendEnv, /ACCESS_TOKEN_SECRET=access-token-secret-local/);
+    assert.match(frontendEnv, /BACKEND_ORIGIN=https:\/\/api\.local\.ropa\.example/);
+    assert.match(frontendEnv, /PORT=5100/);
 
     await assert.rejects(
       writeEnvironmentFiles({ environment: 'local', rootDir }),
-      /Refusing to replace existing environment files/,
+      /Refusing to replace existing generated files/,
     );
   } finally {
     await rm(rootDir, { recursive: true, force: true });
@@ -34,33 +62,41 @@ test('creates scoped local environment files and refuses accidental overwrite', 
 });
 
 for (const environment of ['qa', 'stg', 'prod']) {
-  test(`creates ${environment} values with explicit origins`, async () => {
+  test(`reads root .env.${environment} for ${environment}`, async () => {
     const rootDir = await mkdtemp(join(tmpdir(), `ropa-env-${environment}-`));
-    const publicOrigin = `https://${environment}.ropa.example`;
-    const backendOrigin = `https://api.${environment}.ropa.example`;
 
     try {
-      await writeEnvironmentFiles({ environment, rootDir, publicOrigin, backendOrigin });
+      await writeFile(join(rootDir, '.env'), sourceEnv('local'));
+      await writeFile(join(rootDir, `.env.${environment}`), sourceEnv(environment));
+      await writeEnvironmentFiles({ environment, rootDir });
 
-      const [rootEnv, backendEnv, frontendEnv] = await Promise.all([
-        readFile(join(rootDir, '.env'), 'utf8'),
+      const [backendEnv, frontendEnv] = await Promise.all([
         readFile(join(rootDir, 'backend/.env'), 'utf8'),
         readFile(join(rootDir, 'frontend/.env'), 'utf8'),
       ]);
-      const postgresPassword = rootEnv.match(/^POSTGRES_PASSWORD=(.+)$/m)?.[1];
 
-      assert.match(rootEnv, new RegExp(`APP_ENV=${environment}`));
-      assert.match(rootEnv, new RegExp(`POSTGRES_DB=ropa_${environment}`));
-      assert.match(rootEnv, new RegExp(`PUBLIC_ORIGIN=https:\\/\\/${environment}\\.ropa\\.example`));
-      assert.doesNotMatch(rootEnv, /ChangeMe123!/);
-      assert.ok(postgresPassword);
       assert.match(backendEnv, /NODE_ENV=production/);
-      assert.match(backendEnv, new RegExp(`DATABASE_URL=postgresql:\\/\\/ropa:${postgresPassword}@`));
-      assert.match(backendEnv, new RegExp(`CORS_ORIGIN=https:\\/\\/${environment}\\.ropa\\.example`));
+      assert.match(backendEnv, new RegExp(`DATABASE_URL=postgresql:\\/\\/ropa:password-${environment}@`));
+      assert.match(backendEnv, new RegExp(`ACCESS_TOKEN_SECRET=access-token-secret-${environment}`));
+      assert.doesNotMatch(backendEnv, /access-token-secret-local/);
       assert.match(frontendEnv, new RegExp(`BACKEND_ORIGIN=https:\\/\\/api\\.${environment}\\.ropa\\.example`));
-      assert.match(frontendEnv, /PORT=3000/);
     } finally {
       await rm(rootDir, { recursive: true, force: true });
     }
   });
 }
+
+test('requires the selected root source file', async () => {
+  const rootDir = await mkdtemp(join(tmpdir(), 'ropa-env-missing-'));
+
+  try {
+    await mkdir(join(rootDir, 'backend'), { recursive: true });
+    await writeFile(join(rootDir, '.env'), sourceEnv('local'));
+    await assert.rejects(
+      writeEnvironmentFiles({ environment: 'qa', rootDir }),
+      /\.env\.qa does not exist/,
+    );
+  } finally {
+    await rm(rootDir, { recursive: true, force: true });
+  }
+});

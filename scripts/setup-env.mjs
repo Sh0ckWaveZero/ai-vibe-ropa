@@ -1,131 +1,88 @@
 #!/usr/bin/env node
 
-import { randomBytes } from 'node:crypto';
 import { constants } from 'node:fs';
-import { access, chmod, mkdir, writeFile } from 'node:fs/promises';
+import { access, chmod, mkdir, readFile, writeFile } from 'node:fs/promises';
 import { dirname, resolve } from 'node:path';
+import { parseEnv } from 'node:util';
 import { fileURLToPath } from 'node:url';
 
-const SUPPORTED_ENVIRONMENTS = ['local', 'qa', 'stg', 'prod'];
 const REPO_ROOT = resolve(dirname(fileURLToPath(import.meta.url)), '..');
-
+const SOURCE_FILES = {
+  local: '.env',
+  qa: '.env.qa',
+  stg: '.env.stg',
+  prod: '.env.prod',
+};
 const PROFILES = {
-  local: {
-    nodeEnv: 'development',
-    postgresDb: 'ropa',
-    postgresPassword: 'ropa',
-    publicOrigin: 'https://localhost:8443',
-    corsOrigin: 'http://localhost:5173',
-    backendOrigin: 'http://localhost:4000',
-    frontendPort: 5173,
-    adminPassword: 'ChangeMe123!',
-  },
-  qa: {
-    nodeEnv: 'production',
-    postgresDb: 'ropa_qa',
-    publicOrigin: 'https://qa.example.com',
-    backendOrigin: 'http://localhost:4000',
-    frontendPort: 3000,
-  },
-  stg: {
-    nodeEnv: 'production',
-    postgresDb: 'ropa_stg',
-    publicOrigin: 'https://stg.example.com',
-    backendOrigin: 'http://localhost:4000',
-    frontendPort: 3000,
-  },
-  prod: {
-    nodeEnv: 'production',
-    postgresDb: 'ropa_prod',
-    publicOrigin: 'https://example.com',
-    backendOrigin: 'http://localhost:4000',
-    frontendPort: 3000,
-  },
+  local: { nodeEnv: 'development', frontendPort: 5173 },
+  qa: { nodeEnv: 'production', frontendPort: 3000 },
+  stg: { nodeEnv: 'production', frontendPort: 3000 },
+  prod: { nodeEnv: 'production', frontendPort: 3000 },
 };
 
 function usage() {
-  return `Usage: npm run env:setup -- [local|qa|stg|prod] [options]
+  return `Usage: npm run env:setup -- [local|qa|stg|prod] [--force]
+
+Source files at the repository root:
+  local  -> .env
+  qa     -> .env.qa
+  stg    -> .env.stg
+  prod   -> .env.prod
+
+The command creates backend/.env and frontend/.env. It never changes the source file.
 
 Options:
-  --force                       Replace existing .env files
-  --public-origin=<url>         Public HTTPS origin used by CORS and Compose
-  --backend-origin=<url>        Backend origin used by the frontend server
-  --database-url=<url>          Override the backend DATABASE_URL
-  --postgres-host-port=<port>   Host port for PostgreSQL (default: 5433)
-  --help                        Show this help
-
-Examples:
-  npm run env:setup -- local
-  npm run env:setup -- qa --public-origin=https://qa.ropa.example
-  npm run env:setup -- prod --public-origin=https://ropa.example --force`;
-}
-
-function parseOption(argument, name) {
-  const prefix = `--${name}=`;
-  return argument.startsWith(prefix) ? argument.slice(prefix.length) : undefined;
+  --force  Replace existing backend/.env and frontend/.env
+  --help   Show this help`;
 }
 
 export function parseArgs(args) {
   if (args.includes('--help')) return { help: true };
 
+  const unknownFlag = args.find(
+    (argument) => argument.startsWith('--') && argument !== '--force',
+  );
+  if (unknownFlag) throw new Error(`Unknown option: ${unknownFlag}`);
+
   const positional = args.filter((argument) => !argument.startsWith('--'));
   if (positional.length > 1) throw new Error(`Expected one environment, received: ${positional.join(', ')}`);
 
   const environment = positional[0] ?? 'local';
-  if (!SUPPORTED_ENVIRONMENTS.includes(environment)) {
-    throw new Error(
-      `Unsupported environment "${environment}". Choose one of: ${SUPPORTED_ENVIRONMENTS.join(', ')}`,
-    );
+  if (!Object.hasOwn(SOURCE_FILES, environment)) {
+    throw new Error(`Unsupported environment "${environment}". Choose one of: ${Object.keys(SOURCE_FILES).join(', ')}`);
   }
 
-  const valueFlags = [
-    '--public-origin=',
-    '--backend-origin=',
-    '--database-url=',
-    '--postgres-host-port=',
-  ];
-  const unknownFlag = args.find(
-    (argument) =>
-      argument.startsWith('--') &&
-      argument !== '--force' &&
-      !valueFlags.some((flag) => argument.startsWith(flag)),
-  );
-  if (unknownFlag) throw new Error(`Unknown option: ${unknownFlag}`);
-
-  const options = Object.fromEntries(
-    args
-      .map((argument) => {
-        for (const name of ['public-origin', 'backend-origin', 'database-url', 'postgres-host-port']) {
-          const value = parseOption(argument, name);
-          if (value !== undefined) return [name, value];
-        }
-        return undefined;
-      })
-      .filter(Boolean),
-  );
-
-  return {
-    environment,
-    force: args.includes('--force'),
-    publicOrigin: options['public-origin'],
-    backendOrigin: options['backend-origin'],
-    databaseUrl: options['database-url'],
-    postgresHostPort: options['postgres-host-port'],
-  };
+  return { environment, force: args.includes('--force') };
 }
 
-function validateUrl(value, option, protocols) {
+function requireValue(env, key) {
+  const value = env[key]?.trim();
+  if (!value) throw new Error(`Missing required variable ${key} in the root environment file`);
+  return value;
+}
+
+function optionalInteger(env, key, fallback, { min = 1, max = Number.MAX_SAFE_INTEGER } = {}) {
+  const raw = env[key]?.trim();
+  if (!raw) return fallback;
+
+  const value = Number(raw);
+  if (!Number.isInteger(value) || value < min || value > max) {
+    throw new Error(`${key} must be an integer between ${min} and ${max}`);
+  }
+  return value;
+}
+
+function validateUrl(value, key, protocols) {
   let parsed;
   try {
     parsed = new URL(value);
   } catch {
-    throw new Error(`${option} must be a valid URL`);
+    throw new Error(`${key} must be a valid URL`);
   }
 
   if (!protocols.includes(parsed.protocol)) {
-    throw new Error(`${option} must use ${protocols.join(' or ')}`);
+    throw new Error(`${key} must use ${protocols.join(' or ')}`);
   }
-
   return value.replace(/\/$/, '');
 }
 
@@ -133,96 +90,72 @@ function render(lines) {
   return `${lines.join('\n')}\n`;
 }
 
-export function createEnvContents({
-  environment,
-  publicOrigin: publicOriginOverride,
-  backendOrigin: backendOriginOverride,
-  databaseUrl: databaseUrlOverride,
-  postgresHostPort: postgresHostPortOverride,
-}) {
+export function createEnvContents({ environment, rootEnv, sourceName = SOURCE_FILES[environment] }) {
   const profile = PROFILES[environment];
   if (!profile) throw new Error(`Unsupported environment "${environment}"`);
 
-  const publicOrigin = validateUrl(
-    publicOriginOverride ?? profile.publicOrigin,
-    '--public-origin',
-    ['http:', 'https:'],
-  );
-  const backendOrigin = validateUrl(
-    backendOriginOverride ?? profile.backendOrigin,
-    '--backend-origin',
-    ['http:', 'https:'],
-  );
-  const postgresHostPort = Number(postgresHostPortOverride ?? 5433);
-  if (!Number.isInteger(postgresHostPort) || postgresHostPort < 1 || postgresHostPort > 65535) {
-    throw new Error('--postgres-host-port must be an integer between 1 and 65535');
+  const postgresUser = requireValue(rootEnv, 'POSTGRES_USER');
+  const postgresPassword = requireValue(rootEnv, 'POSTGRES_PASSWORD');
+  const postgresDb = requireValue(rootEnv, 'POSTGRES_DB');
+  const postgresHost = rootEnv.POSTGRES_HOST?.trim() || 'localhost';
+  const postgresHostPort = optionalInteger(rootEnv, 'POSTGRES_HOST_PORT', 5433, { max: 65535 });
+  const backendPort = optionalInteger(rootEnv, 'BACKEND_PORT', 4000, { max: 65535 });
+  const frontendPort = optionalInteger(rootEnv, 'FRONTEND_PORT', profile.frontendPort, { max: 65535 });
+
+  const accessTokenSecret = requireValue(rootEnv, 'ACCESS_TOKEN_SECRET');
+  if (accessTokenSecret.length < 16) throw new Error('ACCESS_TOKEN_SECRET must contain at least 16 characters');
+  const preAuthTokenSecret = requireValue(rootEnv, 'PRE_AUTH_TOKEN_SECRET');
+  if (preAuthTokenSecret.length < 16) throw new Error('PRE_AUTH_TOKEN_SECRET must contain at least 16 characters');
+  const totpEncryptionKey = requireValue(rootEnv, 'TOTP_ENCRYPTION_KEY');
+  if (!/^[0-9a-fA-F]{64}$/.test(totpEncryptionKey)) {
+    throw new Error('TOTP_ENCRYPTION_KEY must contain exactly 64 hexadecimal characters');
   }
 
-  const postgresUser = 'ropa';
-  const postgresPassword = profile.postgresPassword ?? randomBytes(24).toString('hex');
-  const accessTokenSecret = randomBytes(32).toString('hex');
-  const preAuthTokenSecret = randomBytes(32).toString('hex');
-  const totpEncryptionKey = randomBytes(32).toString('hex');
-  const adminPassword = profile.adminPassword ?? `${randomBytes(18).toString('base64url')}Aa1!`;
-  const generatedDatabaseUrl = `postgresql://${encodeURIComponent(postgresUser)}:${encodeURIComponent(postgresPassword)}@localhost:${postgresHostPort}/${encodeURIComponent(profile.postgresDb)}?schema=public`;
-  const databaseUrl = validateUrl(
-    databaseUrlOverride ?? generatedDatabaseUrl,
-    '--database-url',
-    ['postgres:', 'postgresql:'],
+  const publicOrigin = validateUrl(requireValue(rootEnv, 'PUBLIC_ORIGIN'), 'PUBLIC_ORIGIN', ['http:', 'https:']);
+  const backendOrigin = validateUrl(
+    rootEnv.BACKEND_ORIGIN?.trim() || `http://localhost:${backendPort}`,
+    'BACKEND_ORIGIN',
+    ['http:', 'https:'],
   );
-  const header = `# Generated for ${environment} by npm run env:setup -- ${environment}`;
+  const corsOrigin = validateUrl(
+    rootEnv.CORS_ORIGIN?.trim() || (environment === 'local' ? `http://localhost:${frontendPort}` : publicOrigin),
+    'CORS_ORIGIN',
+    ['http:', 'https:'],
+  );
 
+  const databaseUrl = rootEnv.DATABASE_URL?.trim()
+    ? validateUrl(rootEnv.DATABASE_URL.trim(), 'DATABASE_URL', ['postgres:', 'postgresql:'])
+    : `postgresql://${encodeURIComponent(postgresUser)}:${encodeURIComponent(postgresPassword)}@${postgresHost}:${postgresHostPort}/${encodeURIComponent(postgresDb)}?schema=public`;
+  const adminEmail = requireValue(rootEnv, 'ADMIN_EMAIL');
+  if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(adminEmail)) throw new Error('ADMIN_EMAIL must be a valid email address');
+  const adminPassword = requireValue(rootEnv, 'ADMIN_PASSWORD');
+  if (adminPassword.length < 8) throw new Error('ADMIN_PASSWORD must contain at least 8 characters');
+
+  const header = `# Generated from root/${sourceName} for ${environment}; edit the source file and rerun env:setup`;
   return {
-    root: render([
-      header,
-      `APP_ENV=${environment}`,
-      '',
-      `POSTGRES_USER=${postgresUser}`,
-      `POSTGRES_PASSWORD=${postgresPassword}`,
-      `POSTGRES_DB=${profile.postgresDb}`,
-      `POSTGRES_HOST_PORT=${postgresHostPort}`,
-      '',
-      `ACCESS_TOKEN_SECRET=${accessTokenSecret}`,
-      'REFRESH_TOKEN_TTL_DAYS=7',
-      'ACCESS_TOKEN_TTL_MIN=15',
-      `PRE_AUTH_TOKEN_SECRET=${preAuthTokenSecret}`,
-      'PRE_AUTH_TOKEN_TTL_MIN=5',
-      `TOTP_ENCRYPTION_KEY=${totpEncryptionKey}`,
-      'TWOFA_ISSUER=ROPA',
-      '',
-      `PUBLIC_ORIGIN=${publicOrigin}`,
-      'PUBLIC_PORT=8080',
-      'PUBLIC_HTTPS_PORT=8443',
-      '',
-      'ADMIN_EMAIL=admin@ropa.local',
-      `ADMIN_PASSWORD=${adminPassword}`,
-      'UPLOAD_DIR=./uploads',
-      'MAX_UPLOAD_SIZE_MB=10',
-    ]),
     backend: render([
       header,
       `NODE_ENV=${profile.nodeEnv}`,
-      'PORT=4000',
+      `PORT=${backendPort}`,
       `DATABASE_URL=${databaseUrl}`,
       `ACCESS_TOKEN_SECRET=${accessTokenSecret}`,
-      'REFRESH_TOKEN_TTL_DAYS=7',
-      'ACCESS_TOKEN_TTL_MIN=15',
+      `REFRESH_TOKEN_TTL_DAYS=${optionalInteger(rootEnv, 'REFRESH_TOKEN_TTL_DAYS', 7)}`,
+      `ACCESS_TOKEN_TTL_MIN=${optionalInteger(rootEnv, 'ACCESS_TOKEN_TTL_MIN', 15)}`,
       `PRE_AUTH_TOKEN_SECRET=${preAuthTokenSecret}`,
-      'PRE_AUTH_TOKEN_TTL_MIN=5',
+      `PRE_AUTH_TOKEN_TTL_MIN=${optionalInteger(rootEnv, 'PRE_AUTH_TOKEN_TTL_MIN', 5)}`,
       `TOTP_ENCRYPTION_KEY=${totpEncryptionKey}`,
-      'TWOFA_ISSUER=ROPA',
-      `CORS_ORIGIN=${environment === 'local' ? profile.corsOrigin : publicOrigin}`,
-      'ADMIN_EMAIL=admin@ropa.local',
+      `TWOFA_ISSUER=${rootEnv.TWOFA_ISSUER?.trim() || 'ROPA'}`,
+      `CORS_ORIGIN=${corsOrigin}`,
+      `ADMIN_EMAIL=${adminEmail}`,
       `ADMIN_PASSWORD=${adminPassword}`,
-      'UPLOAD_DIR=./uploads',
-      'MAX_UPLOAD_SIZE_MB=10',
+      `UPLOAD_DIR=${rootEnv.UPLOAD_DIR?.trim() || './uploads'}`,
+      `MAX_UPLOAD_SIZE_MB=${optionalInteger(rootEnv, 'MAX_UPLOAD_SIZE_MB', 10)}`,
     ]),
     frontend: render([
       header,
       `BACKEND_ORIGIN=${backendOrigin}`,
-      `PORT=${profile.frontendPort}`,
+      `PORT=${frontendPort}`,
     ]),
-    usesPlaceholderOrigin: !publicOriginOverride && environment !== 'local',
   };
 }
 
@@ -235,10 +168,30 @@ async function fileExists(path) {
   }
 }
 
-export async function writeEnvironmentFiles({ rootDir = REPO_ROOT, force = false, ...options }) {
-  const contents = createEnvContents(options);
+export async function writeEnvironmentFiles({ rootDir = REPO_ROOT, environment, force = false }) {
+  const sourceName = SOURCE_FILES[environment];
+  if (!sourceName) throw new Error(`Unsupported environment "${environment}"`);
+
+  const sourcePath = resolve(rootDir, sourceName);
+  let sourceContent;
+  try {
+    sourceContent = await readFile(sourcePath, 'utf8');
+  } catch (error) {
+    if (error.code === 'ENOENT') {
+      throw new Error(`Source file ${sourcePath} does not exist. Create it from .env.example first.`);
+    }
+    throw error;
+  }
+
+  let rootEnv;
+  try {
+    rootEnv = parseEnv(sourceContent);
+  } catch (error) {
+    throw new Error(`Cannot parse ${sourcePath}: ${error.message}`);
+  }
+
+  const contents = createEnvContents({ environment, rootEnv, sourceName });
   const targets = [
-    [resolve(rootDir, '.env'), contents.root],
     [resolve(rootDir, 'backend/.env'), contents.backend],
     [resolve(rootDir, 'frontend/.env'), contents.frontend],
   ];
@@ -250,7 +203,7 @@ export async function writeEnvironmentFiles({ rootDir = REPO_ROOT, force = false
 
   if (existing.length > 0 && !force) {
     throw new Error(
-      `Refusing to replace existing environment files:\n${existing.map((path) => `  - ${path}`).join('\n')}\nRun again with --force to replace all three files.`,
+      `Refusing to replace existing generated files:\n${existing.map((path) => `  - ${path}`).join('\n')}\nRun again with --force to regenerate both files from ${sourceName}.`,
     );
   }
 
@@ -260,10 +213,7 @@ export async function writeEnvironmentFiles({ rootDir = REPO_ROOT, force = false
     await chmod(path, 0o600);
   }
 
-  return {
-    paths: targets.map(([path]) => path),
-    usesPlaceholderOrigin: contents.usesPlaceholderOrigin,
-  };
+  return { sourcePath, paths: targets.map(([path]) => path) };
 }
 
 async function main() {
@@ -275,16 +225,9 @@ async function main() {
     }
 
     const result = await writeEnvironmentFiles(options);
-    console.log(`Environment "${options.environment}" is ready:`);
+    console.log(`Read environment from ${result.sourcePath}`);
+    console.log('Generated:');
     for (const path of result.paths) console.log(`  - ${path}`);
-    if (result.usesPlaceholderOrigin) {
-      console.warn(
-        `Warning: ${options.environment} uses a placeholder public origin. Run again with --public-origin=https://your-domain --force before deployment.`,
-      );
-    }
-    if (options.environment === 'local') {
-      console.warn('Local credentials are for development only. Do not reuse them outside your machine.');
-    }
   } catch (error) {
     console.error(`env:setup failed: ${error.message}`);
     console.error(usage());
