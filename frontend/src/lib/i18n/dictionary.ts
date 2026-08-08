@@ -66,6 +66,11 @@ export interface Dictionary {
     setupSubtitle: string;
     scanQr: string;
     manualEntryHint: string;
+    showSetupSecret: string;
+    hideSetupSecret: string;
+    copySetupSecret: string;
+    setupSecretCopied: string;
+    setupSecretCopyFailed: string;
     enterCode: string;
     codePlaceholder: string;
     confirmSetup: string;
