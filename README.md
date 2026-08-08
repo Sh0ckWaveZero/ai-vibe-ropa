@@ -18,18 +18,16 @@
 ### 1. เตรียมไฟล์ตั้งค่า
 
 ```bash
-cp .env.example .env
+npm run env:setup -- local
 ```
 
-สร้าง secret แล้วนำค่าไปกำหนดใน `.env` ตามคำอธิบายภายในไฟล์:
+คำสั่งนี้สร้างไฟล์ตั้งค่าที่แยกตามขอบเขตการใช้งาน พร้อมสุ่ม Secret ที่จำเป็นให้โดยอัตโนมัติ:
 
-```bash
-# ใช้สร้าง ACCESS_TOKEN_SECRET และ PRE_AUTH_TOKEN_SECRET
-openssl rand -hex 32
+- `.env` — Docker Compose และค่าระดับระบบ
+- `backend/.env` — Prisma และ Backend API
+- `frontend/.env` — Vite/SvelteKit
 
-# ใช้สร้าง TOTP_ENCRYPTION_KEY (64 ตัวอักษร hex / 32 bytes)
-openssl rand -hex 32
-```
+ไฟล์เหล่านี้ถูก Git ignore และต้องไม่ commit ลง repository
 
 ### 2. เริ่มระบบด้วย Docker Compose
 
@@ -166,16 +164,52 @@ flowchart LR
 
 ## การพัฒนาและโครงสร้างโปรเจกต์
 
+### จัดการ Environment
+
+สร้าง Environment ทั้งสามไฟล์จาก root โดยเลือกได้ 4 profile:
+
+| Profile | การใช้งาน | `NODE_ENV` | ค่าเริ่มต้นฐานข้อมูล |
+|---|---|---|---|
+| `local` | พัฒนาบนเครื่อง | `development` | `ropa` ผ่าน `localhost:5433` |
+| `qa` | Quality Assurance | `production` | `ropa_qa` |
+| `stg` | Staging | `production` | `ropa_stg` |
+| `prod` | Production | `production` | `ropa_prod` |
+
+```bash
+# Local (เป็นค่าเริ่มต้น จึงละคำว่า local ได้)
+npm run env:setup -- local
+
+# QA / Staging / Production ควรกำหนด Public Origin จริงเสมอ
+npm run env:setup -- qa --public-origin=https://qa.ropa.example
+npm run env:setup -- stg --public-origin=https://stg.ropa.example
+npm run env:setup -- prod --public-origin=https://ropa.example
+```
+
+เมื่อต้องรัน Backend/Frontend นอก Docker Compose สามารถ override Origin และ `backend/.env` ที่ใช้เชื่อมต่อฐานข้อมูลภายนอกได้:
+
+```bash
+npm run env:setup -- qa \
+  --public-origin=https://qa.ropa.example \
+  --backend-origin=https://api.qa.ropa.example \
+  --database-url='postgresql://user:password@db.example:5432/ropa_qa?schema=public'
+```
+
+Script จะไม่เขียนทับ `.env` เดิม หากต้องการสลับ profile หรือสร้างใหม่ทั้งหมดให้ใช้ `--force`:
+
+```bash
+npm run env:setup -- stg --public-origin=https://stg.ropa.example --force
+```
+
+> **สำคัญ:** `--force` เขียนทับ `.env`, `backend/.env` และ `frontend/.env` พร้อมกัน ควรสำรองค่าที่ต้องการเก็บก่อนใช้งาน ส่วน profile `qa`, `stg` และ `prod` จะสุ่ม Database Password, Token Secrets, TOTP Encryption Key และ Admin Password ใหม่ทุกครั้ง
+
 ### รันในเครื่อง
 
 ```bash
 # ติดตั้ง dependencies ของทั้ง workspace จาก root
 npm install
 
-# Environment
-cp .env.example .env
-cp backend/.env.example backend/.env
-cp frontend/.env.example frontend/.env
+# สร้าง Environment ของ root, Backend และ Frontend
+npm run env:setup -- local
 
 # PostgreSQL
 docker compose up -d postgres
