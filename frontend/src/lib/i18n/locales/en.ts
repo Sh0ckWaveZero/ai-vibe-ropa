@@ -30,6 +30,8 @@ export const en: Dictionary = {
     previous: 'Previous',
     next: 'Next',
     paginationSummary: 'Showing {from}-{to} of {total}',
+    paginationLabel: 'Pagination',
+    skipToContent: 'Skip to main content',
   },
   nav: {
     dashboard: 'Dashboard',
@@ -40,6 +42,11 @@ export const en: Dictionary = {
     auditLog: 'Audit Log',
     logout: 'Log out',
     profile: 'Profile',
+    primary: 'Primary',
+    menu: 'Navigation menu',
+    closeMenu: 'Close navigation menu',
+    userMenu: 'User menu',
+    closeUserMenu: 'Close user menu',
   },
   auth: {
     loginTitle: 'Sign in',
@@ -225,10 +232,15 @@ export const en: Dictionary = {
     title: 'Notifications',
     empty: 'No notifications yet',
     markAllRead: 'Mark all as read',
+    close: 'Close notifications',
     submitted: '{referenceNo} was submitted for approval',
     approved: '{referenceNo} was approved',
     rejected: '{referenceNo} was rejected',
     rejectedWithReason: '{referenceNo} was rejected: {rejectionReason}',
+  },
+  language: {
+    selectorLabel: 'Change language. Current language: {language}',
+    menuLabel: 'Choose a language',
   },
   theme: {
     light: 'Light',

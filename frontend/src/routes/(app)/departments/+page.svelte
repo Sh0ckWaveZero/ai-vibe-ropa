@@ -131,14 +131,15 @@
     {:else}
       <div class="overflow-x-auto">
         <table class="w-full text-left text-sm">
+          <caption class="sr-only">{$t('departments.title')}</caption>
           <thead>
             <tr class="border-b border-border text-xs text-muted">
-              <th class="py-2 pr-4">{$t('departments.code')}</th>
-              <th class="py-2 pr-4">{$t('departments.nameEn')}</th>
-              <th class="py-2 pr-4">{$t('departments.userCount')}</th>
-              <th class="py-2 pr-4">{$t('departments.recordCount')}</th>
-              <th class="py-2 pr-4">{$t('common.active')}</th>
-              <th class="py-2 pr-4">{$t('common.actions')}</th>
+              <th scope="col" class="py-2 pr-4">{$t('departments.code')}</th>
+              <th scope="col" class="py-2 pr-4">{$t('departments.nameEn')}</th>
+              <th scope="col" class="py-2 pr-4">{$t('departments.userCount')}</th>
+              <th scope="col" class="py-2 pr-4">{$t('departments.recordCount')}</th>
+              <th scope="col" class="py-2 pr-4">{$t('common.active')}</th>
+              <th scope="col" class="py-2 pr-4">{$t('common.actions')}</th>
             </tr>
           </thead>
           <tbody>
@@ -153,8 +154,8 @@
                 </td>
                 <td class="py-2 pr-4">
                   <div class="flex gap-2">
-                    <button class="text-primary hover:underline" onclick={() => openEdit(d)}>{$t('common.edit')}</button>
-                    <button class="text-red-600 hover:underline" onclick={() => openDelete(d)}>{$t('common.delete')}</button>
+                    <button type="button" class="text-primary hover:underline" onclick={() => openEdit(d)}>{$t('common.edit')}</button>
+                    <button type="button" class="text-red-600 hover:underline" onclick={() => openDelete(d)}>{$t('common.delete')}</button>
                   </div>
                 </td>
               </tr>
