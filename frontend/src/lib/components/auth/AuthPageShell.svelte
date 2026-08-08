@@ -10,6 +10,10 @@
 
 </script>
 
+<svelte:head>
+  <title>{title} | ROPA</title>
+</svelte:head>
+
 <div {id} class="flex min-h-screen flex-col bg-surface">
   <header class="flex items-center justify-end gap-2 p-4">
     <LanguageSelector id="auth-language-selector" />

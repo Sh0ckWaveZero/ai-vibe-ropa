@@ -25,7 +25,12 @@ describe('Dialog', () => {
       'm-auto',
       'h-fit',
       'max-h-[calc(100dvh-2rem)]',
+      'custom-dialog',
     );
+    expect(dialog?.querySelector('h2')).toHaveClass('custom-title');
+    expect(dialog?.querySelector('.custom-header')).toBeInTheDocument();
+    expect(dialog?.querySelector('.custom-content')).toBeInTheDocument();
+    expect(dialog?.querySelector('.custom-footer')).toBeInTheDocument();
   });
 
   it('exposes its title as its accessible name', async () => {

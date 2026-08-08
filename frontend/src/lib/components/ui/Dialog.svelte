@@ -7,6 +7,11 @@
     children: Snippet;
     footer: Snippet;
     restoreFocusTo?: HTMLElement | null;
+    class?: string;
+    headerClass?: string;
+    titleClass?: string;
+    contentClass?: string;
+    footerClass?: string;
   }
 
   let {
@@ -15,6 +20,11 @@
     children,
     footer,
     restoreFocusTo,
+    class: className = '',
+    headerClass = '',
+    titleClass = '',
+    contentClass = '',
+    footerClass = '',
   }: Props = $props();
 
   const dialogId = $props.id();
@@ -82,15 +92,15 @@
   closedby="any"
   onclose={onClose}
   onclick={onDialogClick}
-  class="fixed inset-0 m-auto h-fit max-h-[calc(100dvh-2rem)] w-[calc(100%-2rem)] max-w-md overflow-y-auto rounded-lg border border-border bg-surface-raised p-0 text-body backdrop:bg-black/50"
+  class="fixed inset-0 m-auto h-fit max-h-[calc(100dvh-2rem)] w-[calc(100%-2rem)] max-w-md overflow-y-auto rounded-lg border border-border bg-surface-raised p-0 text-body backdrop:bg-black/50 {className}"
 >
-  <div class="border-b border-border px-5 py-3">
-    <h2 id={titleId} bind:this={titleEl} tabindex="-1" class="text-sm font-semibold">{title}</h2>
+  <div class="border-b border-border px-5 py-3 {headerClass}">
+    <h2 id={titleId} bind:this={titleEl} tabindex="-1" class="text-sm font-semibold {titleClass}">{title}</h2>
   </div>
-  <div class="px-5 py-4 text-sm">
+  <div class="px-5 py-4 text-sm {contentClass}">
     {@render children()}
   </div>
-  <div class="flex justify-end gap-2 border-t border-border px-5 py-3">
+  <div class="flex justify-end gap-2 border-t border-border px-5 py-3 {footerClass}">
     {@render footer()}
   </div>
 </dialog>

@@ -35,6 +35,12 @@
     closeUserMenu(true);
   }
 
+  function initials(fullName: string) {
+    const parts = fullName.trim().split(/\s+/).filter(Boolean);
+    if (parts.length > 1) return `${parts[0][0]}${parts[parts.length - 1][0]}`.toUpperCase();
+    return (parts[0] ?? '?').slice(0, 2).toUpperCase();
+  }
+
   function roleName(user: SessionUser) {
     return $locale === 'th' ? user.roleNameTh : $locale === 'zh' ? user.roleNameZh : user.roleNameEn;
   }
@@ -111,17 +117,19 @@
         type="button"
         onclick={() => (userMenuOpen = !userMenuOpen)}
         onkeydown={handleUserMenuKeydown}
-        class="flex items-center gap-2 rounded-md px-2 py-1.5 text-sm hover:bg-surface-muted"
+        class="group relative flex size-11 shrink-0 items-center justify-center rounded-full p-1.5 text-sm hover:bg-surface-muted focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
         aria-label={`${$t('nav.userMenu')}: ${user.fullName}`}
         aria-expanded={userMenuOpen}
         aria-controls={userMenuPanelId}
       >
-        <span class="flex size-7 items-center justify-center rounded-full bg-primary text-xs font-semibold text-primary-contrast">
-          {user.fullName.slice(0, 1).toUpperCase()}
+        <span aria-hidden="true" class="flex size-9 items-center justify-center rounded-full bg-primary text-xs font-semibold text-primary-contrast">
+          {initials(user.fullName)}
         </span>
-        <span class="hidden text-left sm:block">
-          <span class="block text-sm font-medium text-body">{user.fullName}</span>
-          <span class="block text-xs text-muted">{roleName(user)}</span>
+        <span
+          aria-hidden="true"
+          class="pointer-events-none absolute right-full top-1/2 z-[70] mr-3 max-w-[min(18rem,calc(100vw-5rem))] -translate-y-1/2 translate-x-1 truncate rounded-full border border-border bg-surface-raised px-4 py-2 text-left text-sm font-semibold text-body opacity-0 shadow-lg transition-[opacity,transform] duration-150 group-hover:translate-x-0 group-hover:opacity-100 group-focus-within:translate-x-0 group-focus-within:opacity-100"
+        >
+          {user.fullName}
         </span>
       </button>
 
@@ -138,7 +146,8 @@
           class="absolute right-0 z-50 mt-2 w-56 rounded-md border border-border bg-surface-raised p-1 shadow-lg"
         >
           <div class="px-3 py-2 text-xs text-muted">
-            {departmentName(user)}
+            <p class="font-medium text-body">{roleName(user)}</p>
+            <p>{departmentName(user)}</p>
           </div>
           <button
             type="button"
@@ -166,10 +175,38 @@
   </div>
 </header>
 
-<Dialog bind:open={logoutOpen} title={$t('auth.logoutConfirmTitle')} restoreFocusTo={userMenuTriggerEl}>
-  <p class="text-muted">{$t('auth.logoutConfirmBody')}</p>
+<Dialog
+  bind:open={logoutOpen}
+  title={$t('auth.logoutConfirmTitle')}
+  restoreFocusTo={userMenuTriggerEl}
+  class="!rounded-[1.75rem]"
+  headerClass="!border-0 px-8 pb-2 pt-9 text-center"
+  titleClass="mx-auto max-w-[18rem] text-[clamp(2rem,8vw,2.75rem)] font-bold leading-tight"
+  contentClass="px-8 pb-2 pt-3"
+  footerClass="flex-col !border-0 px-8 pb-8 pt-3"
+>
+  <div class="mb-5 flex items-center gap-4 rounded-2xl border border-border px-5 py-4 text-left">
+    <span class="flex size-16 shrink-0 items-center justify-center rounded-full bg-primary text-lg font-semibold text-primary-contrast" aria-hidden="true">
+      {initials(user.fullName)}
+    </span>
+    <div class="min-w-0">
+      <p class="truncate text-lg font-semibold text-body">{user.fullName}</p>
+      <p class="truncate text-base text-muted">{user.email}</p>
+    </div>
+  </div>
+  <p class="text-center text-sm text-muted">{$t('auth.logoutConfirmBody')}</p>
   {#snippet footer()}
-    <Button variant="secondary" autofocus onclick={() => (logoutOpen = false)}>{$t('common.cancel')}</Button>
-    <Button variant="danger" loading={loggingOut} onclick={confirmLogout}>{$t('nav.logout')}</Button>
+    <Button
+      variant="ghost"
+      class="w-full rounded-full !bg-body px-5 py-3.5 text-base !text-surface hover:opacity-90"
+      loading={loggingOut}
+      onclick={confirmLogout}
+    >{$t('nav.logout')}</Button>
+    <Button
+      variant="secondary"
+      class="w-full rounded-full border-border bg-transparent px-5 py-3.5 text-base hover:bg-surface-muted"
+      autofocus
+      onclick={() => (logoutOpen = false)}
+    >{$t('common.cancel')}</Button>
   {/snippet}
 </Dialog>

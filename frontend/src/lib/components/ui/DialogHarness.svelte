@@ -18,7 +18,16 @@
   >
 {/if}
 
-<Dialog bind:open title="Confirm logout" restoreFocusTo={menuTrigger}>
+<Dialog
+  bind:open
+  title="Confirm logout"
+  restoreFocusTo={menuTrigger}
+  class="custom-dialog"
+  headerClass="custom-header"
+  titleClass="custom-title"
+  contentClass="custom-content"
+  footerClass="custom-footer"
+>
   <p>Are you sure you want to log out?</p>
   {#snippet footer()}
     <Button variant="secondary" autofocus onclick={() => (open = false)}>Cancel</Button>
