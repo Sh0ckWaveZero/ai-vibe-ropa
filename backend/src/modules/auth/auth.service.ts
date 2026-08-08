@@ -88,7 +88,7 @@ export async function confirmTotpSetup(userId: string, code: string) {
   }
 
   const secret = decryptSecret(user.totpSecretEnc);
-  if (!verifyTotpCode(secret, code)) {
+  if (!(await verifyTotpCode(secret, code))) {
     throw AppError.badRequest('Invalid verification code', 'INVALID_TOTP_CODE');
   }
 
@@ -109,7 +109,7 @@ export async function verifyTotpOrBackupCode(userId: string, code: string) {
   if (looksLikeBackupCode(code)) {
     ok = await consumeBackupCode(userId, code);
   } else {
-    ok = verifyTotpCode(decryptSecret(user.totpSecretEnc), code);
+    ok = await verifyTotpCode(decryptSecret(user.totpSecretEnc), code);
   }
 
   if (!ok) {

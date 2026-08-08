@@ -152,10 +152,11 @@ flowchart LR
 | ส่วนประกอบ | เทคโนโลยี |
 |---|---|
 | Frontend | SvelteKit 5, Tailwind CSS v4, SSR และ Dark Mode |
-| Backend | Node.js, Express, TypeScript และ Prisma ORM |
+| Backend | Node.js, Express, TypeScript และ Prisma ORM 7 |
 | Database | PostgreSQL |
 | Reverse Proxy | nginx |
 | Runtime | Docker Compose หรือ Apple Container |
+| Monorepo | npm Workspaces และ Turborepo |
 
 - nginx ยุติการเชื่อมต่อ TLS และเปลี่ยน HTTP พอร์ต 8080 ไปยัง HTTPS
 - Cookie ถูกกำหนดเป็น `Secure` การเข้าสู่ระบบใน Production จึงต้องทำผ่าน HTTPS
@@ -168,21 +169,22 @@ flowchart LR
 ### รันในเครื่อง
 
 ```bash
+# ติดตั้ง dependencies ของทั้ง workspace จาก root
+npm install
+
+# Environment
+cp .env.example .env
+cp backend/.env.example backend/.env
+cp frontend/.env.example frontend/.env
+
 # PostgreSQL
 docker compose up -d postgres
 
-# Backend
-cd backend
-cp .env.example .env
-npm install
-npx prisma migrate deploy
+# Database และข้อมูลตั้งต้น
+npm run prisma:migrate
 npm run seed
-npm run dev
 
-# Frontend (เปิดอีก Terminal)
-cd frontend
-cp .env.example .env
-npm install
+# เปิด Backend และ Frontend พร้อมกันผ่าน Turborepo
 npm run dev
 ```
 
@@ -193,6 +195,9 @@ npm run dev
 <summary>ดูโครงสร้างโปรเจกต์</summary>
 
 ```text
+package.json                    npm workspace และคำสั่งระดับ monorepo
+package-lock.json               lockfile เดียวของทั้ง workspace
+turbo.json                      task graph และ cache outputs
 backend/
   prisma/schema.prisma          โมเดลข้อมูลหลัก
   src/modules/                  Auth, Users, Roles, Departments, ROPA, Audit และ Notifications

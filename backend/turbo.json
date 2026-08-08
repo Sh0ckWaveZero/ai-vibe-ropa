@@ -1,0 +1,17 @@
+{
+  "extends": ["//"],
+  "tasks": {
+    "build": {
+      "dependsOn": ["$TURBO_EXTENDS$", "prisma:generate"]
+    },
+    "dev": {
+      "dependsOn": ["$TURBO_EXTENDS$", "prisma:generate"]
+    },
+    "seed": {
+      "dependsOn": ["$TURBO_EXTENDS$", "prisma:generate"]
+    },
+    "test": {
+      "dependsOn": ["$TURBO_EXTENDS$", "prisma:generate"]
+    }
+  }
+}

@@ -1,0 +1,13 @@
+.git
+.github
+.turbo
+**/node_modules
+**/.svelte-kit
+**/build
+**/dist
+**/.env
+**/.env.*
+backend/src/generated
+backend/uploads
+backend/uploads-test
+backups

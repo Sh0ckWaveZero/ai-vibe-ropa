@@ -3,11 +3,13 @@
 FROM node:24.17.0-alpine3.24 AS deps
 WORKDIR /app
 COPY package.json package-lock.json ./
-RUN npm ci
+COPY backend/package.json ./backend/package.json
+COPY frontend/package.json ./frontend/package.json
+RUN npm ci --workspace=ropa-frontend
 
 FROM deps AS build
-COPY . .
-RUN npm run build
+COPY frontend ./frontend
+RUN npm run build --workspace=ropa-frontend
 
 FROM node:24.17.0-alpine3.24 AS runtime
 WORKDIR /app
@@ -16,7 +18,7 @@ ENV PORT=3000
 ENV HOST=0.0.0.0
 RUN rm -rf /usr/local/lib/node_modules/npm \
   && rm -f /usr/local/bin/npm /usr/local/bin/npx
-COPY --from=build --chown=node:node /app/build ./build
+COPY --from=build --chown=node:node /app/frontend/build ./build
 
 USER node
 EXPOSE 3000

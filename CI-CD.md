@@ -18,8 +18,8 @@ Wave 1 (parallel, seconds)        Wave 2 (parallel, ~1 min)         Wave 3 (last
 │ secret-scan         │            │ dependency-scan       │        │ docker-scan               │
 │  (gitleaks)         │            │  (npm audit ×2)       │  ──►   │  build both images,       │
 ├────────────────────┤   ──►      ├───────────────────────┤        │  Trivy-scan for            │
-│ backend-build       │            │ sast-codeql           │        │  CRITICAL/HIGH CVEs       │
-│ frontend-build      │            │  (CodeQL JS/TS)       │        └───────────────────────────┘
+│ workspace-build     │            │ sast-codeql           │        │  CRITICAL/HIGH CVEs       │
+│  (Turborepo)        │            │  (CodeQL JS/TS)       │        └───────────────────────────┘
 └────────────────────┘            │ backend-test          │
                                    │  (vitest + supertest, │
                                    │   real Postgres)      │
@@ -37,7 +37,7 @@ Wave 1 (parallel, seconds)        Wave 2 (parallel, ~1 min)         Wave 3 (last
 | Stage | Tool | Catches | Blocks merge? |
 |---|---|---|---|
 | `secret-scan` | [gitleaks](https://github.com/gitleaks/gitleaks) (official Docker image, no license/action needed) | API keys, private keys, tokens accidentally committed | Yes |
-| `backend-build` / `frontend-build` | `tsc` / `svelte-check` + `vite build` | Type errors, broken builds | Yes |
+| `workspace-build` | [Turborepo](https://turborepo.dev/) orchestrating `tsc`, `svelte-check`, and `vite build` | Type errors, broken builds | Yes |
 | `backend-test` | [Vitest](https://vitest.dev/) + [supertest](https://github.com/ladjs/supertest) against a real Postgres service container | Permission-matrix scoping bugs, ROPA status-machine regressions, 2FA login-stage bypasses, cross-department/cross-record attachment access, notification ownership leaks — see `backend/src/__tests__/` | Yes |
 | `dependency-scan` | `npm audit --audit-level=high` | Known-vulnerable npm dependencies (backend and frontend, run separately) | Yes |
 | `sast-codeql` | [GitHub CodeQL](https://codeql.github.com/) | Injection, XSS, unsafe deserialization, and other JS/TS security patterns | Yes |
@@ -71,7 +71,7 @@ for `main` to make it a hard gate:
 2. Enable **Require a pull request before merging** → **Require review from
    Code Owners**
 3. Enable **Require status checks to pass before merging** and select the
-   jobs above (`secret-scan`, `backend-build`, `frontend-build`,
+   jobs above (`secret-scan`, `workspace-build`,
    `backend-test`, `dependency-scan`, `sast-codeql`, `docker-scan`)
 
 This has to be done once in the repo settings — GitHub doesn't let a
@@ -98,25 +98,28 @@ What Claude actually runs when asked (the same underlying commands Path A's
 `ci.yml` runs, so the result is consistent either way):
 
 ```bash
-# Type-check
-(cd backend && npm run build)
-(cd frontend && npm run check && npm run build)
+# Install the complete npm workspace from its single lockfile
+npm ci
+
+# Type-check and build through the Turborepo task graph
+npm run check
+npm run build
 
 # Integration tests (needs a Postgres reachable at backend/.env.test's
 # DATABASE_URL — docker compose up -d postgres is enough)
-(cd backend && npm test)
+npm run test -- --filter=ropa-backend
 
 # Dependency scan
-(cd backend && npm audit --audit-level=high)
-(cd frontend && npm audit --audit-level=high)
+npm audit --audit-level=high --workspace=ropa-backend
+npm audit --audit-level=high --workspace=ropa-frontend
 
 # Secret scan (no local install needed)
 docker run --rm -v "$PWD:/repo" zricethezav/gitleaks:latest detect \
   --source=/repo --config=/repo/.gitleaks.toml --no-banner -v
 
 # Container scan (after building the images)
-docker build -t ropa-backend:local ./backend
-docker build -t ropa-frontend:local ./frontend
+docker build -f backend/Dockerfile -t ropa-backend:local .
+docker build -f frontend/Dockerfile -t ropa-frontend:local .
 docker run --rm -v /var/run/docker.sock:/var/run/docker.sock aquasec/trivy:latest \
   image --severity CRITICAL,HIGH ropa-backend:local
 ```
