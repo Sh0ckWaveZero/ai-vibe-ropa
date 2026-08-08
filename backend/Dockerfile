@@ -21,7 +21,9 @@ WORKDIR /app
 ENV NODE_ENV=production
 RUN apk add --no-cache su-exec \
   && mkdir -p /app/uploads \
-  && chown node:node /app/uploads
+  && chown node:node /app/uploads \
+  && rm -rf /usr/local/lib/node_modules/npm \
+  && rm -f /usr/local/bin/npm /usr/local/bin/npx
 COPY --chown=node:node package.json package-lock.json ./
 COPY --chown=node:node prisma ./prisma
 COPY --from=production-deps --chown=node:node /app/node_modules ./node_modules
