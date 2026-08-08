@@ -34,7 +34,7 @@ describe('2FA setup page', () => {
     expect(secret).toHaveClass('blur-sm', 'select-none');
     expect(secret).toHaveAttribute('aria-hidden', 'true');
 
-    const showButton = screen.getByRole('button', { name: 'Show setup key' });
+    const showButton = screen.getByRole('button', { name: 'Show' });
     expect(showButton).toHaveAttribute('aria-expanded', 'false');
 
     await user.click(showButton);
@@ -57,7 +57,7 @@ describe('2FA setup page', () => {
     const copyStatus = screen.getByRole('status');
     expect(copyStatus.textContent?.trim()).toBe('');
     expect(copyStatus).toHaveAttribute('aria-atomic', 'true');
-    await user.click(screen.getByRole('button', { name: 'Copy setup key' }));
+    await user.click(screen.getByRole('button', { name: 'Copy' }));
 
     expect(secret).toHaveAttribute('aria-hidden', 'true');
     expect(writeText).toHaveBeenCalledWith(setupSecret);
@@ -75,7 +75,7 @@ describe('2FA setup page', () => {
     render(SetupTwoFactorPageHarness);
 
     const secret = await screen.findByTestId('setup-2fa-secret');
-    await user.click(screen.getByRole('button', { name: 'Copy setup key' }));
+    await user.click(screen.getByRole('button', { name: 'Copy' }));
 
     await waitFor(() => expect(screen.getByRole('status')).toHaveTextContent('Could not copy setup key'));
     expect(secret).toHaveAttribute('aria-hidden', 'true');

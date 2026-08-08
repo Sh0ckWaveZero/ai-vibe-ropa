@@ -26,9 +26,9 @@ describe('Backup codes page', () => {
     expect(document.getElementById('backup-codes-actions')).toBeInTheDocument();
     expect(screen.getByTestId('backup-codes-list')).toHaveClass('blur-sm', 'select-none');
     expect(screen.getByTestId('backup-codes-list')).toHaveAttribute('aria-hidden', 'true');
-    expect(screen.getByRole('button', { name: 'Show backup codes' })).toHaveAttribute('id', 'backup-codes-visibility-button');
-    expect(screen.getByRole('button', { name: 'Show backup codes' })).toHaveAttribute('aria-expanded', 'false');
-    expect(screen.getByRole('button', { name: 'Download backup codes' })).toHaveAttribute('id', 'backup-codes-download-button');
+    expect(screen.getByRole('button', { name: 'Show' })).toHaveAttribute('id', 'backup-codes-visibility-button');
+    expect(screen.getByRole('button', { name: 'Show' })).toHaveAttribute('aria-expanded', 'false');
+    expect(screen.getByRole('button', { name: 'Download' })).toHaveAttribute('id', 'backup-codes-download-button');
     expect(screen.getByRole('button', { name: "I've saved these codes" })).toHaveAttribute('id', 'backup-codes-confirm-button');
     expect(document.getElementById('backup-code-1')).toHaveTextContent(codes[0]);
     expect(document.getElementById('backup-code-2')).toHaveTextContent(codes[1]);
@@ -38,7 +38,7 @@ describe('Backup codes page', () => {
     const user = userEvent.setup();
     render(BackupCodesPageHarness);
 
-    const showButton = screen.getByRole('button', { name: 'Show backup codes' });
+    const showButton = screen.getByRole('button', { name: 'Show' });
     await user.click(showButton);
 
     expect(screen.getByTestId('backup-codes-list')).not.toHaveClass('blur-sm', 'select-none');
@@ -53,7 +53,7 @@ describe('Backup codes page', () => {
     const click = vi.spyOn(HTMLAnchorElement.prototype, 'click').mockImplementation(() => undefined);
     render(BackupCodesPageHarness);
 
-    await user.click(screen.getByRole('button', { name: 'Download backup codes' }));
+    await user.click(screen.getByRole('button', { name: 'Download' }));
     expect(createObjectURL).toHaveBeenCalledWith(expect.any(Blob));
     expect(click).toHaveBeenCalledOnce();
     expect(revokeObjectURL).toHaveBeenCalledWith('blob:backup-codes');
