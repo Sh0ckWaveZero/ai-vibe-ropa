@@ -1,252 +1,238 @@
-# 📋 ROPA — ระบบบันทึกรายการกิจกรรมการประมวลผลข้อมูลส่วนบุคคล
+# ROPA
 
-ระบบสำหรับติดตั้งใช้งานเอง (self-hosted) เพื่อบันทึกและบริหารจัดการ
-**Record of Processing Activities** ตามแนวทาง GDPR มาตรา 30 / PDPA ของไทย
-รองรับการแบ่งข้อมูลตามหน่วยงาน มีขั้นตอนอนุมัติแบบ แบบร่าง → ส่งขออนุมัติ →
-อนุมัติ/ตีกลับ กำหนดสิทธิ์การใช้งานด้วยตารางสิทธิ์ (permission matrix)
-ที่แก้ไขได้จากหน้าเว็บ, บังคับยืนยันตัวตนสองขั้นตอน (2FA) ทุกบัญชี, เสิร์ฟผ่าน
-HTTPS เสมอ, แนบไฟล์ประกอบและแจ้งเตือนในระบบได้, สำรองข้อมูลอัตโนมัติทุกคืน
-และรองรับ 3 ภาษา: ไทย / อังกฤษ / จีน
+ระบบบันทึกและบริหารจัดการ **Record of Processing Activities** สำหรับติดตั้งใช้งานเอง (self-hosted) ตามแนวทาง GDPR มาตรา 30 และ PDPA ของไทย
 
-## 🛠️ เทคโนโลยีที่ใช้
+รองรับการแบ่งข้อมูลตามหน่วยงาน ขั้นตอนอนุมัติ การกำหนดสิทธิ์ 2FA ไฟล์แนบ การแจ้งเตือน การสำรองข้อมูลอัตโนมัติ และ 3 ภาษา: ไทย อังกฤษ และจีน
 
-| ส่วนประกอบ | เทคโนโลยี |
-|---|---|
-| 🎨 หน้าบ้าน (Frontend) | SvelteKit 5 + Tailwind CSS v4 (ธีมเทา/ทอง/เหลือง พร้อม Dark Mode) |
-| ⚙️ หลังบ้าน (Backend) | Node.js 24 + Express 5 + TypeScript 5.9, Prisma ORM 7 |
-| 🗄️ ฐานข้อมูล | PostgreSQL |
-| 🌐 Reverse proxy | nginx (ส่ง `/api/*` ไปที่ backend ส่วนที่เหลือส่งไปที่ frontend) |
-| 🐳 การรัน | ทุกอย่างรันผ่าน `docker compose` |
+## ภาพรวม
 
-## 🚀 เริ่มต้นใช้งานอย่างรวดเร็ว
+- บริหารรายการ ROPA แยกตามหน่วยงาน
+- ส่งรายการเพื่ออนุมัติ ตีกลับ และแก้ไขใหม่ได้
+- ปรับบทบาทและสิทธิ์จากหน้าเว็บผ่าน Permission Matrix
+- บังคับใช้ 2FA และ HTTPS กับทุกบัญชี
+- แนบไฟล์ ส่งออก Excel/PDF และตรวจสอบ Audit Log ได้
+- สำรองข้อมูลอัตโนมัติทุกคืน
 
-Docker Compose:
+## เริ่มต้นใช้งาน
 
-```bash
-cp .env.example .env      # ปรับ secrets ทั้งหมดตามคำแนะนำในไฟล์ (ดูด้านล่าง)
-docker compose pull       # ดึงอิมเมจที่กำหนดไว้ให้เป็นปัจจุบัน
-docker compose up -d --build --wait
-```
-
-Apple Container ใช้คำสั่งต่อไปนี้แทน (ต้องติดตั้ง `container-compose`):
+### 1. เตรียมไฟล์ตั้งค่า
 
 ```bash
 cp .env.example .env
+```
+
+สร้าง secret แล้วนำค่าไปกำหนดใน `.env` ตามคำอธิบายภายในไฟล์:
+
+```bash
+# ใช้สร้าง ACCESS_TOKEN_SECRET และ PRE_AUTH_TOKEN_SECRET
+openssl rand -hex 32
+
+# ใช้สร้าง TOTP_ENCRYPTION_KEY (64 ตัวอักษร hex / 32 bytes)
+openssl rand -hex 32
+```
+
+### 2. เริ่มระบบด้วย Docker Compose
+
+```bash
+docker compose pull
+docker compose up -d --build --wait
+```
+
+<details>
+<summary>ใช้งานด้วย Apple Container</summary>
+
+ต้องติดตั้ง `container-compose` ก่อน แล้วจึงรันคำสั่งต่อไปนี้:
+
+```bash
 container-compose --file docker-compose.yml build
 container-compose --file docker-compose.yml up -d --env-file .env
 container list --all
 ```
 
-จากนั้นเปิด **https://localhost:8443** (หรือพอร์ตที่ตั้งไว้ใน `PUBLIC_HTTPS_PORT`) — ระบบ
-ใช้ใบรับรอง **self-signed** ที่สร้างขึ้นอัตโนมัติในการรันครั้งแรก เบราว์เซอร์จะเตือนว่า
-ใบรับรองไม่น่าเชื่อถือ (เพราะไม่ได้ออกโดย CA จริง) กด "ดำเนินการต่อ/Advanced → Proceed"
-ได้ตามปกติสำหรับการใช้งานภายใน หากต้องเปิดให้เข้าถึงจากอินเทอร์เน็ตจริง ให้เปลี่ยนไปใช้
-ใบรับรองจริง (เช่น Let's Encrypt) แทน
+</details>
 
-ก่อนรัน ต้องสร้างค่า secret ที่จำเป็นใน `.env`:
+### 3. เปิดหน้าเว็บ
 
-```bash
-# ACCESS_TOKEN_SECRET และ PRE_AUTH_TOKEN_SECRET
-openssl rand -hex 32
-# TOTP_ENCRYPTION_KEY (ต้องเป็น 64 hex characters / 32 bytes)
-openssl rand -hex 32
-```
+เปิด [https://localhost:8443](https://localhost:8443) หรือพอร์ตที่กำหนดใน `PUBLIC_HTTPS_PORT`
 
-เข้าสู่ระบบด้วยบัญชีแอดมินเริ่มต้น (กำหนดค่าได้ใน `.env` ค่าเริ่มต้นคือ):
+ระบบสร้างใบรับรองแบบ self-signed ให้อัตโนมัติในการรันครั้งแรก เบราว์เซอร์จึงอาจแสดงคำเตือน สำหรับระบบที่เปิดใช้งานผ่านอินเทอร์เน็ตควรเปลี่ยนเป็นใบรับรองจาก CA เช่น Let's Encrypt
 
-- 📧 อีเมล: `admin@ropa.local`
-- 🔑 รหัสผ่าน: `ChangeMe123!`
+## บัญชีเริ่มต้นและ 2FA
 
-การเข้าสู่ระบบครั้งแรกจะถูก**บังคับให้ตั้งค่า 2FA** (สแกน QR ด้วยแอปอย่าง Google
-Authenticator หรือ Authy) ก่อนเข้าใช้งานได้ — ดูรายละเอียดที่หัวข้อ
-[การยืนยันตัวตนสองขั้นตอน](#-การยืนยันตัวตนสองขั้นตอน-2fa) ด้านล่าง
+บัญชีผู้ดูแลระบบเริ่มต้นกำหนดได้ใน `.env` โดยมีค่าเริ่มต้นดังนี้:
 
-> ⚠️ **สำคัญ:** เปลี่ยนรหัสผ่านแอดมินทันทีหลังเข้าสู่ระบบครั้งแรก
+| รายการ | ค่าเริ่มต้น |
+|---|---|
+| อีเมล | `admin@ropa.local` |
+| รหัสผ่าน | `ChangeMe123!` |
 
-เมื่อรันครั้งแรก container ของ backend จะรัน migration และ seed ข้อมูลเริ่มต้นให้อัตโนมัติ ได้แก่
+> **สำคัญ:** เปลี่ยนรหัสผ่านผู้ดูแลระบบทันทีหลังเข้าสู่ระบบครั้งแรก
 
-- 🔐 **สิทธิ์การใช้งาน** และ **บทบาท** เริ่มต้น
-- 🏢 **หน่วยงาน** เริ่มต้น: สำนักงานส่วนกลาง, IT, HR (เพิ่ม/แก้ไขได้จากหน้า "หน่วยงาน")
-- 👤 บัญชีผู้ดูแลระบบเริ่มต้น (bootstrap admin)
+ทุกบัญชีต้องเปิดใช้ TOTP ซึ่งรองรับแอปอย่าง Google Authenticator และ Authy ผู้ใช้ที่ยังไม่ตั้งค่าจะถูกนำไปสแกน QR หลังกรอกรหัสผ่านถูกต้อง
 
-### 👥 บทบาทเริ่มต้นในระบบ
+- รหัสลับ TOTP เข้ารหัสด้วย AES-256-GCM ก่อนจัดเก็บ
+- รหัสสำรองมี 10 ชุด แต่ละชุดใช้ได้ครั้งเดียว แสดงเพียงครั้งเดียว และจัดเก็บเป็น Bcrypt Hash
+- สร้างรหัสสำรองชุดใหม่ได้จากหน้าโปรไฟล์ โดยชุดเดิมจะถูกยกเลิกทันที
+- การล็อกอินและยืนยันโค้ดมี Rate Limit เพื่อป้องกันการเดารหัส
+- ผู้มีสิทธิ์ `users.manage` สามารถรีเซ็ต 2FA ให้ผู้ใช้ตั้งค่าใหม่ในการเข้าสู่ระบบครั้งถัดไป
+
+<details>
+<summary>ข้อมูลที่ระบบสร้างให้อัตโนมัติในการรันครั้งแรก</summary>
+
+- Migration และ Seed ของฐานข้อมูล
+- สิทธิ์และบทบาทเริ่มต้น
+- หน่วยงานสำนักงานส่วนกลาง, IT และ HR
+- บัญชีผู้ดูแลระบบเริ่มต้น (Bootstrap Admin)
+
+หน่วยงานทั้งหมดเพิ่มหรือแก้ไขภายหลังได้จากหน้า **หน่วยงาน**
+
+</details>
+
+## บทบาท สิทธิ์ และขั้นตอน ROPA
+
+### บทบาทเริ่มต้น
 
 | บทบาท | สิทธิ์โดยสรุป |
 |---|---|
-| 👑 ผู้ดูแลระบบสูงสุด (Super Admin) | ทำได้ทุกอย่างในระบบ |
-| 🛡️ เจ้าหน้าที่คุ้มครองข้อมูลส่วนบุคคล (DPO) | ดู/แก้ไข ROPA ได้ทุกหน่วยงาน, อนุมัติ/ตีกลับ, ดูประวัติการใช้งาน |
-| ✍️ ผู้บันทึกข้อมูลหน่วยงาน (Department Editor) | สร้าง/แก้ไข/ส่งขออนุมัติ ROPA เฉพาะหน่วยงานตนเอง |
-| 👁️ ผู้ตรวจสอบ/ผู้เยี่ยมชม (Viewer / Auditor) | ดู ROPA ได้ทุกหน่วยงานและดูประวัติการใช้งาน (อ่านอย่างเดียว) |
+| Super Admin | จัดการทุกส่วนของระบบ |
+| DPO | ดูและแก้ไข ROPA ทุกหน่วยงาน อนุมัติ ตีกลับ และดูประวัติการใช้งาน |
+| Department Editor | สร้าง แก้ไข และส่ง ROPA ของหน่วยงานตนเองเพื่อขออนุมัติ |
+| Viewer / Auditor | ดู ROPA ทุกหน่วยงานและประวัติการใช้งานแบบอ่านอย่างเดียว |
 
-สามารถสร้างบทบาทใหม่หรือปรับตารางสิทธิ์ได้เองจากหน้า **บทบาทและสิทธิ์** โดยไม่ต้องแก้โค้ด
+สร้างบทบาทใหม่หรือแก้ไขสิทธิ์ได้จากหน้า **บทบาทและสิทธิ์** โดยไม่ต้องแก้โค้ด
 
-## 🔒 การยืนยันตัวตนสองขั้นตอน (2FA)
+### Permission Matrix
 
-ทุกบัญชี**บังคับ**เปิดใช้ TOTP (มาตรฐานเดียวกับ Google Authenticator/Authy) — ไม่มีทาง
-ข้ามได้ ผู้ใช้ใหม่ที่ยังไม่ตั้งค่าจะถูกพาไปหน้าสแกน QR ทันทีหลังใส่รหัสผ่านถูกต้อง
+สิทธิ์อยู่ในรูปแบบ `module.action` เช่น `ropa.read_own`, `ropa.read_all`, `ropa.approve` และ `users.manage` โดยผูกกับบทบาทผ่านตาราง `role_permissions`
 
-- **รหัสลับ TOTP เข้ารหัสไว้ในฐานข้อมูล** ด้วย AES-256-GCM (ไม่เก็บเป็น plaintext)
-- **รหัสสำรอง (backup codes)** 10 ชุด ใช้ได้ครั้งเดียวต่อชุด แสดงให้เห็นครั้งเดียวตอนตั้งค่าเสร็จ
-  และสร้างใหม่ได้จากหน้าโปรไฟล์ (ชุดเดิมจะใช้ไม่ได้ทันที)
-- มี **rate limit** ทั้งตอนล็อกอินและตอนยืนยันโค้ด เพื่อป้องกันการเดารหัส
-- ถ้าผู้ใช้ทำอุปกรณ์หาย ผู้มีสิทธิ์ `users.manage` สามารถกด **"Reset 2FA"** จากหน้าผู้ใช้งาน
-  เพื่อบังคับให้ตั้งค่าใหม่ในการเข้าสู่ระบบครั้งถัดไป
+ผู้ใช้มีหนึ่งบทบาทและอาจสังกัดหน่วยงาน สิทธิ์ที่ลงท้ายด้วย `_own` จำกัดข้อมูลเฉพาะหน่วยงานของผู้ใช้ ส่วน `_all` ครอบคลุมทุกหน่วยงาน
 
-## 🏗️ สถาปัตยกรรมระบบ
+รายการสิทธิ์และบทบาทเริ่มต้นอยู่ที่ `backend/src/constants/permissions.ts`
 
-```
-                 :8080 (http, 301 redirect only)
-                 :8443 (https, self-signed cert)
-                 ┌────────┐
-  ผู้ใช้ (browser) ─▶ │ nginx  │
-                 └───┬────┘
-              /api/*  │  เส้นทางอื่นทั้งหมด
-                 ┌────▼────┐        ┌──────────┐
-                 │ backend │  ───▶  │ postgres │
-                 │ :4000   │        │  :5432   │
-                 └─────────┘        └──────────┘
-                 ┌──────────┐
-                 │ frontend │  (SvelteKit SSR, Node)
-                 │  :3000   │
-                 └──────────┘
+### ขั้นตอนการอนุมัติ
+
+```text
+แบบร่าง (DRAFT) → รออนุมัติ (SUBMITTED) → อนุมัติแล้ว (APPROVED)
+                              └──────→ ตีกลับ (REJECTED) → แก้ไขใหม่
 ```
 
-- **HTTPS is always on.** nginx terminates TLS with a certificate generated
-  by a one-off `certs` container on first boot (see `docker-compose.yml`) and
-  redirects all plain HTTP to HTTPS. Cookies are flagged `Secure`, so this
-  isn't optional — login simply won't work over plain HTTP in production.
-- **เบราว์เซอร์ของผู้ใช้** จะคุยกับ origin เดียวเท่านั้น (ผ่าน nginx) ไม่ได้ยิงตรงไป
-  backend เลย ทำให้ไม่ต้องตั้งค่า CORS ในระบบจริง
-- **การเรนเดอร์ฝั่งเซิร์ฟเวอร์ (SSR)** เช่นการตรวจสอบสถานะล็อกอินใน root layout
-  จะเรียก backend ตรงผ่านเครือข่ายภายใน (`BACKEND_HOST`/`BACKEND_PORT`) และส่งต่อ
-  cookie ของ request เองด้วยมือ — ดูที่ `frontend/src/lib/server/backend.ts`
-- ส่วนที่เหลือ (หน้าจอ CRUD ต่าง ๆ) เรียก API ฝั่ง client ผ่าน path แบบ relative
-  `/api/*` — ดูที่ `frontend/src/lib/api/client.ts` ซึ่งจัดการ refresh access
-  token ให้อัตโนมัติเมื่อได้รับ 401
+Department Editor เป็นผู้สร้าง แก้ไข และส่งรายการ ส่วนผู้มีสิทธิ์ `ropa.approve` เช่น DPO เป็นผู้อนุมัติหรือตีกลับพร้อมเหตุผล
 
-## 🔐 ระบบสิทธิ์การใช้งาน (Permission Matrix)
+ระบบบันทึกทุกการกระทำลง Audit Log พร้อมแสดงค่าก่อนและหลังของแต่ละฟิลด์ ผู้มีสิทธิ์ `ropa.create` ยังสามารถทำสำเนารายการเดิมเป็นแบบร่างใหม่ได้
 
-การควบคุมสิทธิ์ใช้แนวคิด **ตารางสิทธิ์ (permission matrix)**: `permissions`
-(รวม module + action เช่น `ropa.read_own`, `ropa.approve`, `users.manage`)
-จะถูกจัดกลุ่มเข้ากับ `roles` ผ่านตาราง `role_permissions` และผู้ใช้แต่ละคน
-(`user`) มีได้ 1 บทบาท พร้อมหน่วยงาน (ไม่บังคับ) สิทธิ์ที่เกี่ยวกับหน่วยงาน
-จะมาเป็นคู่ `_own` / `_all` (เช่น `ropa.read_own` กับ `ropa.read_all`)
-ทำให้กำหนดได้ว่าบทบาทนั้นเห็นเฉพาะหน่วยงานตนเอง หรือเห็นได้ทั้งองค์กร
+### ไฟล์แนบและการแจ้งเตือน
 
-ดูรายการสิทธิ์ทั้งหมดและการกำหนดบทบาทเริ่มต้นได้ที่
-`backend/src/constants/permissions.ts`
+รองรับ PDF, Word, Excel, CSV/TXT และรูปภาพ ขนาดสูงสุดกำหนดด้วย `MAX_UPLOAD_SIZE_MB` ซึ่งมีค่าเริ่มต้น 10 MB
 
-## 🔄 ขั้นตอนการทำงานของ ROPA
+ไฟล์จะใช้ชื่อที่ระบบสุ่มและดาวน์โหลดเป็น `application/octet-stream` เสมอ การอัปโหลดและลบทำได้เมื่อรายการเป็นแบบร่างหรือถูกตีกลับ เว้นแต่ผู้ใช้มีสิทธิ์ `ropa.update_all`
 
-แต่ละรายการจะไล่สถานะตาม `แบบร่าง (DRAFT) → รอการอนุมัติ (SUBMITTED) →
-อนุมัติแล้ว (APPROVED)` หรือ `ถูกตีกลับ (REJECTED)` ซึ่งจะกลับไปแก้ไขได้อีกครั้ง
-ผู้บันทึกข้อมูลหน่วยงานสร้าง/แก้ไขแบบร่างและส่งขออนุมัติ ส่วนผู้ที่มีสิทธิ์
-`ropa.approve` (เช่นบทบาท DPO) จะเป็นผู้อนุมัติหรือตีกลับพร้อมระบุเหตุผล
-ทุกการกระทำจะถูกบันทึกลงประวัติการใช้งาน (audit log) โดยอัตโนมัติ พร้อมบันทึก
-**การเปลี่ยนแปลงแต่ละฟิลด์แบบก่อน/หลัง (diff)** ให้ตรวจสอบย้อนหลังได้
+เมื่อส่งรายการ ผู้มีสิทธิ์อนุมัติจะได้รับการแจ้งเตือน เมื่ออนุมัติหรือตีกลับ ผู้สร้างจะได้รับแจ้งเช่นกัน ระบบจะไม่ส่งการแจ้งเตือนให้ผู้กระทำรายการเอง
 
-จากหน้ารายละเอียด ROPA ผู้ที่มีสิทธิ์ `ropa.create` กดปุ่ม **"ทำสำเนาเป็นรายการใหม่"**
-เพื่อคัดลอกข้อมูลทั้งหมดของรายการที่เปิดอยู่ไปเป็นฐานของรายการใหม่ (สถานะเริ่มต้นเป็น
-แบบร่างเสมอ ไม่ว่ารายการต้นทางจะอยู่สถานะใด) — ใช้ endpoint และการตรวจสิทธิ์ชุด
-เดียวกับหน้าอ่านข้อมูลปกติ ไม่มีช่องทางลัดผ่านการตรวจสอบสิทธิ์
+### ส่งออก Excel และ PDF
 
-## 📎 ไฟล์แนบและการแจ้งเตือน
+ผู้มีสิทธิ์ `ropa.export` สามารถกรองตามหน่วยงาน สถานะ และช่วงวันที่ แล้วส่งออกเป็น:
 
-แต่ละรายการ ROPA สามารถแนบไฟล์ประกอบได้ (PDF, Word, Excel, CSV/TXT, รูปภาพ —
-ขนาดไม่เกิน `MAX_UPLOAD_SIZE_MB`, ค่าเริ่มต้น 10MB) จากหน้ารายละเอียดรายการ
-สิทธิ์ในการอัปโหลด/ลบไฟล์แนบใช้กฎเดียวกับการแก้ไขฟิลด์ (แบบร่าง/ถูกตีกลับเท่านั้น
-เว้นแต่มีสิทธิ์ `ropa.update_all`) ไฟล์จะถูกจัดเก็บด้วยชื่อที่ระบบสุ่มขึ้นเอง
-(ไม่ใช้ชื่อไฟล์ที่ผู้ใช้ตั้ง) และดาวน์โหลดกลับมาเป็น `application/octet-stream`
-เสมอ เพื่อไม่ให้เบราว์เซอร์แสดงผลไฟล์แบบ inline
+- Excel (`.xlsx`) ซึ่งมีข้อมูลครบทุกฟิลด์
+- PDF ซึ่งสรุปจำนวนตามสถานะและตารางรายการ
 
-เมื่อมีการส่งขออนุมัติ ผู้มีสิทธิ์ `ropa.approve` ทุกคนจะได้รับ**การแจ้งเตือนในระบบ**
-(ไอคอนกระดิ่งที่แถบบนของทุกหน้า) และเมื่ออนุมัติ/ตีกลับ ผู้สร้างรายการจะได้รับแจ้งเตือน
-กลับเช่นกัน (ยกเว้นกรณีอนุมัติ/ส่งรายการของตนเอง ระบบจะไม่แจ้งเตือนตัวเอง)
+ระบบยังคงบังคับสิทธิ์การอ่านขณะส่งออก ผู้ที่ไม่มี `ropa.read_all` จะส่งออกได้เฉพาะหน่วยงานของตนเอง
 
-## 📤 ส่งออกข้อมูล (Excel / PDF)
+ข้อมูล Excel ป้องกัน Formula Injection (CWE-1236) โดยเติม `'` หน้าข้อความที่ขึ้นต้นด้วย `=`, `+`, `-` หรือ `@`
 
-จากหน้า **บันทึก ROPA** ผู้ที่มีสิทธิ์ `ropa.export` กดปุ่ม **ส่งออก** เพื่อเลือก:
+## สถาปัตยกรรมและเทคโนโลยี
 
-- **รูปแบบไฟล์**: Excel (.xlsx) ข้อมูลครบทุกฟิลด์ หรือ PDF สรุปข้อมูล (จำนวนตามสถานะ +
-  ตารางรายการ)
-- **หน่วยงาน**: หน่วยงานเดียว หรือ "ทุกหน่วยงาน" (จะเห็นได้ตามสิทธิ์ที่มีอยู่แล้ว —
-  ถ้าไม่มี `ropa.read_all` ระบบจะจำกัดเฉพาะหน่วยงานตนเองให้อัตโนมัติ ต่อให้ส่ง
-  พารามิเตอร์อื่นมาก็ตาม)
-- **สถานะ** และ **ช่วงวันที่สร้างรายการ** (ไม่บังคับ)
+```mermaid
+flowchart LR
+    U["Browser"] -->|"HTTPS :8443"| N["nginx"]
+    N -->|"/api/*"| B["Backend :4000"]
+    N -->|"เส้นทางอื่น"| F["Frontend :3000"]
+    B --> P["PostgreSQL :5432"]
+```
 
-ไฟล์ Excel มีการป้องกัน **CSV/Excel formula injection** (CWE-1236) — ข้อความที่
-ผู้ใช้กรอกเองแล้วขึ้นต้นด้วย `=`, `+`, `-`, `@` จะถูกใส่ `'` นำหน้าอัตโนมัติก่อนเขียนลง
-เซลล์ ป้องกันไม่ให้ Excel ตีความเป็นสูตรตอนเปิดไฟล์
+| ส่วนประกอบ | เทคโนโลยี |
+|---|---|
+| Frontend | SvelteKit 5, Tailwind CSS v4, SSR และ Dark Mode |
+| Backend | Node.js 24, Express 5, TypeScript 5.9 และ Prisma ORM 7 |
+| Database | PostgreSQL |
+| Reverse Proxy | nginx |
+| Runtime | Docker Compose หรือ Apple Container |
 
-## 🛡️ ความปลอดภัยและ CI/CD
+- nginx ยุติการเชื่อมต่อ TLS และเปลี่ยน HTTP พอร์ต 8080 ไปยัง HTTPS
+- Cookie ถูกกำหนดเป็น `Secure` การเข้าสู่ระบบใน Production จึงต้องทำผ่าน HTTPS
+- Browser ติดต่อระบบผ่าน nginx เพียง Origin เดียว จึงไม่ต้องตั้งค่า CORS ใน Production
+- SSR เรียก Backend ผ่านเครือข่ายภายในและส่งต่อ Cookie ด้วย `frontend/src/lib/server/backend.ts`
+- Client เรียก `/api/*` ผ่าน `frontend/src/lib/api/client.ts` ซึ่ง Refresh Access Token เมื่อได้รับสถานะ 401
 
-ทุก push/PR ที่เข้า `main` หรือ `develop` จะรันไปป์ไลน์อัตโนมัติ: ตรวจ secret
-รั่วไหล → generate Prisma Client + build/typecheck → integration tests กับ PostgreSQL
-→ สแกน dependency (npm audit) + static analysis (CodeQL) → build image และสแกนด้วย
-Trivy ส่วน pull request มี workflow แยกให้ Claude อ่าน diff และคอมเมนต์รีวิว
-ความปลอดภัย/ความถูกต้องของโค้ด รายละเอียดแต่ละ job, dependency graph,
-มาตรฐานการตั้งชื่อ และ required checks อยู่ที่ [`docs/ci.md`](docs/ci.md)
-ส่วนมาตรการความปลอดภัยที่ระบบใช้อยู่ตอนนี้อยู่ที่ [`SECURITY.md`](SECURITY.md)
+## การพัฒนาและโครงสร้างโปรเจกต์
 
-## 💻 การพัฒนาในเครื่อง (ไม่ใช้ Docker ทั้งหมด)
+### รันในเครื่อง
 
 ```bash
-# รัน Postgres อย่างเดียวผ่าน compose
+# PostgreSQL
 docker compose up -d postgres
 
 # Backend
 cd backend
-cp .env.example .env   # ชี้ DATABASE_URL ไปที่ postgres ของตนเอง + ใส่ secrets (ดูคอมเมนต์ในไฟล์)
+cp .env.example .env
 npm install
 npm run prisma:generate
 npm run prisma:migrate
 npm run seed
-npm run dev             # http://localhost:4000
+npm run dev
 
-# Frontend (เปิดอีก terminal)
+# Frontend (เปิดอีก Terminal)
 cd frontend
 cp .env.example .env
 npm install
-npm run dev              # http://localhost:5173, proxy /api ไปที่ :4000
+npm run dev
 ```
+
+- Backend: [http://localhost:4000](http://localhost:4000)
+- Frontend: [http://localhost:5173](http://localhost:5173) โดย Proxy `/api` ไปยัง Backend
 
 Backend ใช้ Prisma ORM 7 โดยอ่าน schema และ datasource ผ่าน
 `backend/prisma.config.ts`, generate client ไปที่ `backend/src/generated/prisma`
-(ไม่ commit เข้า Git) และเชื่อม PostgreSQL ผ่าน `@prisma/adapter-pg` ดังนั้นหลังแก้
-`schema.prisma` หรือ checkout dependency ใหม่ ให้รัน `npm run prisma:generate`
-ก่อน build เสมอ ค่า `DATABASE_URL` ต้องอยู่ใน environment หรือ `backend/.env`
+(ไม่ commit เข้า Git) และเชื่อม PostgreSQL ผ่าน `@prisma/adapter-pg` หลังแก้
+`schema.prisma` หรือ checkout dependency ใหม่ ต้องรัน `npm run prisma:generate`
+ก่อน build และต้องกำหนด `DATABASE_URL` ใน environment หรือ `backend/.env`
 ก่อนเรียกคำสั่ง Prisma
 
-## 📁 โครงสร้างโปรเจกต์
+<details>
+<summary>ดูโครงสร้างโปรเจกต์</summary>
 
-```
+```text
 backend/
-  prisma.config.ts           Prisma v7 config: schema, migrations, seed และ DATABASE_URL
-  prisma/schema.prisma       โมเดลข้อมูล (users, roles, permissions, departments, ropa_records,
-                              ropa_attachments, notifications, backup_codes, audit_logs)
-  src/generated/prisma/      Prisma Client ที่ generate ในเครื่อง/CI (ไม่ commit เข้า Git)
-  src/modules/                 1 โฟลเดอร์ต่อ 1 resource: auth, users, roles, departments, ropa
-                              (+ attachments.routes/service.ts ในโฟลเดอร์เดียวกัน), audit, notifications
-  src/middleware/               requireAuth / requireAnyPermission / requirePreAuth (ขั้น 2FA) / rateLimit
-  src/utils/totp.ts             เข้ารหัส/ตรวจรหัส TOTP + สร้าง QR code
-  src/utils/backupCodes.ts      สร้าง/ตรวจ/เก็บรหัสสำรอง (bcrypt hash, ใช้ครั้งเดียว)
-  src/utils/exportExcel.ts       สร้างไฟล์ .xlsx (ป้องกัน formula injection)
-  src/utils/exportPdf.ts         สร้าง PDF สรุปข้อมูล
-  src/utils/diff.ts              เทียบค่าก่อน/หลังสำหรับบันทึกลง audit log
-  src/db/seed/                   สร้างบทบาท/สิทธิ์/หน่วยงาน/แอดมินเริ่มต้น
-  src/__tests__/                 ชุดทดสอบ Vitest + supertest (รันจริงกับ Postgres)
+  prisma.config.ts              Prisma v7 config: schema, migrations, seed และ DATABASE_URL
+  prisma/schema.prisma          โมเดลข้อมูลหลัก
+  src/generated/prisma/         Prisma Client ที่ generate ในเครื่อง/CI (ไม่ commit เข้า Git)
+  src/modules/                  Auth, Users, Roles, Departments, ROPA, Audit และ Notifications
+  src/middleware/               Authentication, Permission, Pre-auth และ Rate Limit
+  src/utils/                    TOTP, Backup Codes, Export และ Diff
+  src/db/seed/                  ข้อมูลตั้งต้นของระบบ
+  src/__tests__/                ชุดทดสอบ Vitest และ Supertest
 frontend/
-  src/routes/(app)/             ส่วนของแอปที่ต้องล็อกอิน (sidebar/topbar) + หน้าต่าง ๆ
-  src/routes/login/             เข้าสู่ระบบ + ขั้นตอน 2FA (setup-2fa, verify-2fa, backup-codes)
-  src/lib/i18n/                  ไฟล์คำแปล th/en/zh และ locale context
-  src/lib/components/            UI ที่ใช้ร่วมกัน (Button, Card, Dialog, Pagination, TagInput, ...),
-                              NotificationBell, และฟอร์ม ROPA
+  src/routes/(app)/             หน้าสำหรับผู้ใช้ที่เข้าสู่ระบบแล้ว
+  src/routes/login/             Login และขั้นตอน 2FA
+  src/lib/i18n/                 คำแปลภาษาไทย อังกฤษ และจีน
+  src/lib/components/           UI Components และฟอร์ม ROPA
 nginx/
-  nginx.conf                    main config (include conf.d/*.conf)
-  templates/default.conf.template  HTTP→HTTPS redirect + HTTPS reverse proxy (envsubst ตอน container start)
-.github/workflows/             ci.yml (build/scan pipeline) + claude-review.yml (Claude รีวิว PR)
-docs/ci.md                     รายละเอียดขั้นตอน ชื่อ flow และมาตรฐานของ CI/CD
-CI-CD.md                       ลิงก์ compatibility ไปยัง docs/ci.md
-SECURITY.md                    นโยบายความปลอดภัยและวิธีรายงานช่องโหว่
-CREDITS.md                     แหล่งที่มาของโค้ด/ไลบรารีที่อ้างอิงหรือดัดแปลงมา
+  nginx.conf                    การตั้งค่าหลัก
+  templates/default.conf.template
+.github/workflows/              CI/CD และ Claude Review
+docs/ci.md                      ขั้นตอน ชื่อ flow และมาตรฐานของ CI/CD
+CI-CD.md                        ลิงก์ compatibility ไปยัง docs/ci.md
+SECURITY.md                     นโยบายและวิธีรายงานช่องโหว่
 ```
+
+</details>
+
+## ความปลอดภัยและเอกสารเพิ่มเติม
+
+ทุก push และ pull request ที่เข้า `main` หรือ `develop` จะตรวจ Secret, generate
+Prisma Client, Build, Type Check, Integration Test กับ PostgreSQL, Dependency Audit,
+CodeQL และ Trivy ส่วน pull request มี workflow แยกสำหรับรีวิว Diff อัตโนมัติ
+
+- [docs/ci.md](docs/ci.md) — รายละเอียดแต่ละ job, dependency graph, มาตรฐานการตั้งชื่อ และ required checks
+- [CI-CD.md](CI-CD.md) — ลิงก์เดิมสำหรับ compatibility
+- [SECURITY.md](SECURITY.md) — มาตรการความปลอดภัยและการรายงานช่องโหว่
+- [CREDITS.md](CREDITS.md) — แหล่งที่มาและไลบรารีที่ใช้งาน
