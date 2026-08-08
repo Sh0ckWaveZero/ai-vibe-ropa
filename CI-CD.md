@@ -1,4 +1,4 @@
-# CI/CD pipeline
+# CI/CD
 
 This file documents the pipeline; **the pipeline itself is code**, not
 markdown — it lives in [`.github/workflows/ci.yml`](.github/workflows/ci.yml)

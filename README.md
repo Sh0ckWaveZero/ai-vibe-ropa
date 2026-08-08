@@ -162,7 +162,7 @@ flowchart LR
 | ส่วนประกอบ | เทคโนโลยี |
 |---|---|
 | Frontend | SvelteKit 5, Tailwind CSS v4, SSR และ Dark Mode |
-| Backend | Node.js, Express, TypeScript และ Prisma ORM 7 |
+| Backend | Node.js 24, Express 5, TypeScript 5.9 และ Prisma ORM 7 |
 | Database | PostgreSQL |
 | Reverse Proxy | nginx |
 | Runtime | Docker Compose หรือ Apple Container |
@@ -323,6 +323,13 @@ npm run prisma:generate
 - Backend: [http://localhost:4000](http://localhost:4000)
 - Frontend: [http://localhost:5173](http://localhost:5173) โดย Proxy `/api` ไปยัง Backend
 
+Backend ใช้ Prisma ORM 7 โดยอ่าน schema และ datasource ผ่าน
+`backend/prisma.config.ts`, generate client ไปที่ `backend/src/generated/prisma`
+(ไม่ commit เข้า Git) และเชื่อม PostgreSQL ผ่าน `@prisma/adapter-pg` หลังแก้
+`schema.prisma` หรือ checkout dependency ใหม่ ต้องรัน `npm run prisma:generate`
+ก่อน build และต้องกำหนด `DATABASE_URL` ใน environment หรือ `backend/.env`
+ก่อนเรียกคำสั่ง Prisma
+
 <details>
 <summary>ดูโครงสร้างโปรเจกต์</summary>
 
@@ -331,7 +338,9 @@ package.json                    npm workspace และคำสั่งระ�
 package-lock.json               lockfile เดียวของทั้ง workspace
 turbo.json                      task graph และ cache outputs
 backend/
+  prisma.config.ts              Prisma v7 config: schema, migrations, seed และ DATABASE_URL
   prisma/schema.prisma          โมเดลข้อมูลหลัก
+  src/generated/prisma/         Prisma Client ที่ generate ในเครื่อง/CI (ไม่ commit เข้า Git)
   src/modules/                  Auth, Users, Roles, Departments, ROPA, Audit และ Notifications
   src/middleware/               Authentication, Permission, Pre-auth และ Rate Limit
   src/utils/                    TOTP, Backup Codes, Export และ Diff
@@ -346,14 +355,20 @@ nginx/
   nginx.conf                    การตั้งค่าหลัก
   templates/default.conf.template
 .github/workflows/              CI/CD และ Claude Review
+docs/ci.md                      ขั้นตอน ชื่อ flow และมาตรฐานของ CI/CD
+CI-CD.md                        ลิงก์ compatibility ไปยัง docs/ci.md
+SECURITY.md                     นโยบายและวิธีรายงานช่องโหว่
 ```
 
 </details>
 
 ## ความปลอดภัยและเอกสารเพิ่มเติม
 
-ทุก Push และ Pull Request จะผ่านการตรวจ Secret, Build, Type Check, Dependency Audit, CodeQL, Trivy และการรีวิว Diff อัตโนมัติ
+ทุก push และ pull request ที่เข้า `main` หรือ `develop` จะตรวจ Secret, generate
+Prisma Client, Build, Type Check, Integration Test กับ PostgreSQL, Dependency Audit,
+CodeQL และ Trivy ส่วน pull request มี workflow แยกสำหรับรีวิว Diff อัตโนมัติ
 
-- [CI-CD.md](CI-CD.md) — รายละเอียดไปป์ไลน์ CI/CD
+- [docs/ci.md](docs/ci.md) — รายละเอียดแต่ละ job, dependency graph, มาตรฐานการตั้งชื่อ และ required checks
+- [CI-CD.md](CI-CD.md) — ลิงก์เดิมสำหรับ compatibility
 - [SECURITY.md](SECURITY.md) — มาตรการความปลอดภัยและการรายงานช่องโหว่
 - [CREDITS.md](CREDITS.md) — แหล่งที่มาและไลบรารีที่ใช้งาน
