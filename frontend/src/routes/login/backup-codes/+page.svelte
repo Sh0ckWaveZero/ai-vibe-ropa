@@ -39,13 +39,6 @@
 <AuthPageShell id="backup-codes-page" title={$t('twoFactor.backupCodesTitle')} subtitle={$t('twoFactor.backupCodesSubtitle')}>
   {#if $pendingBackupCodes}
     <div id="backup-codes-content" class="flex flex-col gap-4">
-      <Button id="backup-codes-back-button" variant="ghost" onclick={() => window.history.back()} class="-ml-2 min-h-11 self-start">
-        <svg viewBox="0 0 20 20" class="size-4" fill="none" stroke="currentColor" stroke-width="1.75" aria-hidden="true">
-          <path d="m12.5 15-5-5 5-5" stroke-linecap="round" stroke-linejoin="round" />
-        </svg>
-        {$t('common.back')}
-      </Button>
-
       <div id="backup-codes-actions" class="grid grid-cols-1 gap-2 min-[360px]:grid-cols-2">
         <Button
           id="backup-codes-visibility-button"

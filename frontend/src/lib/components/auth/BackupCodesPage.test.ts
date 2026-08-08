@@ -28,7 +28,6 @@ describe('Backup codes page', () => {
     expect(screen.getByTestId('backup-codes-list')).toHaveAttribute('aria-hidden', 'true');
     expect(screen.getByRole('button', { name: 'Show backup codes' })).toHaveAttribute('id', 'backup-codes-visibility-button');
     expect(screen.getByRole('button', { name: 'Show backup codes' })).toHaveAttribute('aria-expanded', 'false');
-    expect(screen.getByRole('button', { name: 'Back' })).toHaveAttribute('id', 'backup-codes-back-button');
     expect(screen.getByRole('button', { name: 'Download backup codes' })).toHaveAttribute('id', 'backup-codes-download-button');
     expect(screen.getByRole('button', { name: "I've saved these codes" })).toHaveAttribute('id', 'backup-codes-confirm-button');
     expect(document.getElementById('backup-code-1')).toHaveTextContent(codes[0]);
@@ -47,16 +46,12 @@ describe('Backup codes page', () => {
     expect(screen.getByRole('button', { name: 'Hide backup codes' })).toHaveAttribute('aria-expanded', 'true');
   });
 
-  it('offers back navigation and downloads the codes as a text file', async () => {
+  it('downloads the codes as a text file', async () => {
     const user = userEvent.setup();
-    const back = vi.spyOn(window.history, 'back').mockImplementation(() => undefined);
     const createObjectURL = vi.spyOn(URL, 'createObjectURL').mockReturnValue('blob:backup-codes');
     const revokeObjectURL = vi.spyOn(URL, 'revokeObjectURL').mockImplementation(() => undefined);
     const click = vi.spyOn(HTMLAnchorElement.prototype, 'click').mockImplementation(() => undefined);
     render(BackupCodesPageHarness);
-
-    await user.click(screen.getByRole('button', { name: 'Back' }));
-    expect(back).toHaveBeenCalledOnce();
 
     await user.click(screen.getByRole('button', { name: 'Download backup codes' }));
     expect(createObjectURL).toHaveBeenCalledWith(expect.any(Blob));
