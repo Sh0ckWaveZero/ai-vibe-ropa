@@ -1,4 +1,5 @@
 import assert from 'node:assert/strict';
+import { EventEmitter } from 'node:events';
 import { mkdir, mkdtemp, readFile, rm, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
@@ -9,6 +10,7 @@ import {
   isConfirmed,
   parseArgs,
   resolveEnvironmentSelection,
+  runApplication,
   writeEnvironmentFiles,
 } from './setup-env.mjs';
 
@@ -109,7 +111,12 @@ test('requires the selected root source file', async () => {
 });
 
 test('supports interactive choices and confirmation', () => {
-  assert.deepEqual(parseArgs([]), { interactive: true, force: false });
+  assert.deepEqual(parseArgs([]), { interactive: true, force: false, run: false });
+  assert.deepEqual(parseArgs(['current', '--force', '--run']), {
+    environment: 'current',
+    force: true,
+    run: true,
+  });
   assert.equal(resolveEnvironmentSelection('', 'stg'), 'stg');
   assert.equal(resolveEnvironmentSelection('current', 'qa'), 'qa');
   assert.equal(resolveEnvironmentSelection('2', 'prod'), 'local');
@@ -117,6 +124,22 @@ test('supports interactive choices and confirmation', () => {
   assert.equal(isConfirmed('y'), true);
   assert.equal(isConfirmed('YES'), true);
   assert.equal(isConfirmed('n'), false);
+});
+
+test('runs the root dev script when requested', async () => {
+  const child = new EventEmitter();
+  let invocation;
+  const spawnProcess = (command, args, options) => {
+    invocation = { command, args, options };
+    queueMicrotask(() => child.emit('exit', 0, null));
+    return child;
+  };
+
+  const exitCode = await runApplication({ rootDir: '/repo', spawnProcess });
+  assert.equal(exitCode, 0);
+  assert.deepEqual(invocation.args, ['run', 'dev']);
+  assert.equal(invocation.options.cwd, '/repo');
+  assert.equal(invocation.options.stdio, 'inherit');
 });
 
 test('current regenerates the last selected profile', async () => {

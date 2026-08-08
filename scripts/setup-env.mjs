@@ -1,5 +1,6 @@
 #!/usr/bin/env node
 
+import { spawn } from 'node:child_process';
 import { constants } from 'node:fs';
 import { access, chmod, mkdir, readFile, writeFile } from 'node:fs/promises';
 import { dirname, resolve } from 'node:path';
@@ -17,15 +18,16 @@ const PROFILES = {
 };
 
 function usage() {
-  return `Usage: npm run env:setup -- [current|local|qa|stg|prod] [--force]
+  return `Usage: npm run env:setup -- [current|local|qa|stg|prod] [--force] [--run]
 
 Every profile reads .env at the repository root.
-Run without a profile to select one interactively and confirm before writing.
+Run without a profile to select one interactively, generate the files, and choose whether to start the app.
 
 The command creates backend/.env and frontend/.env. It never changes the source file.
 
 Options:
   --force  Replace existing backend/.env and frontend/.env
+  --run    Start the app with npm run dev after generating files
   --help   Show this help`;
 }
 
@@ -33,7 +35,7 @@ export function parseArgs(args) {
   if (args.includes('--help')) return { help: true };
 
   const unknownFlag = args.find(
-    (argument) => argument.startsWith('--') && argument !== '--force',
+    (argument) => argument.startsWith('--') && !['--force', '--run'].includes(argument),
   );
   if (unknownFlag) throw new Error(`Unknown option: ${unknownFlag}`);
 
@@ -41,7 +43,7 @@ export function parseArgs(args) {
   if (positional.length > 1) throw new Error(`Expected one environment, received: ${positional.join(', ')}`);
 
   if (positional.length === 0) {
-    return { interactive: true, force: args.includes('--force') };
+    return { interactive: true, force: args.includes('--force'), run: args.includes('--run') };
   }
 
   const environment = positional[0];
@@ -49,7 +51,7 @@ export function parseArgs(args) {
     throw new Error(`Unsupported environment "${environment}". Choose one of: current, ${Object.keys(PROFILES).join(', ')}`);
   }
 
-  return { environment, force: args.includes('--force') };
+  return { environment, force: args.includes('--force'), run: args.includes('--run') };
 }
 
 export async function detectCurrentEnvironment(rootDir = REPO_ROOT) {
@@ -102,14 +104,40 @@ async function promptForEnvironment({ rootDir = REPO_ROOT, input = process.stdin
     output.write(`1) current (${currentEnvironment})\n2) local\n3) qa\n4) stg\n5) prod\n`);
     const answer = await prompt.question('Select environment [1]: ');
     const environment = resolveEnvironmentSelection(answer, currentEnvironment);
-    const confirmation = await prompt.question(
-      `Run env:setup with "${environment}" using root .env? [y/N]: `,
-    );
-
-    return isConfirmed(confirmation) ? { environment, force: true } : { cancelled: true };
+    return { environment, force: true, interactive: true };
   } finally {
     prompt.close();
   }
+}
+
+async function promptToRunApplication({ input = process.stdin, output = process.stdout } = {}) {
+  const prompt = createInterface({ input, output });
+  try {
+    const answer = await prompt.question('Start the application now with "npm run dev"? [y/N]: ');
+    return isConfirmed(answer);
+  } finally {
+    prompt.close();
+  }
+}
+
+export function runApplication({ rootDir = REPO_ROOT, spawnProcess = spawn } = {}) {
+  const command = process.platform === 'win32' ? 'npm.cmd' : 'npm';
+  const child = spawnProcess(command, ['run', 'dev'], { cwd: rootDir, stdio: 'inherit' });
+
+  return new Promise((resolvePromise, rejectPromise) => {
+    child.once('error', rejectPromise);
+    child.once('exit', (code, signal) => {
+      if (['SIGINT', 'SIGTERM'].includes(signal)) {
+        resolvePromise(0);
+        return;
+      }
+      if (signal) {
+        rejectPromise(new Error(`npm run dev stopped by signal ${signal}`));
+        return;
+      }
+      resolvePromise(code ?? 1);
+    });
+  });
 }
 
 function requireValue(env, key) {
@@ -286,10 +314,6 @@ async function main() {
 
     if (options.interactive) {
       options = await promptForEnvironment();
-      if (options.cancelled) {
-        console.log('Cancelled. No files were changed.');
-        return;
-      }
     }
 
     const result = await writeEnvironmentFiles(options);
@@ -297,6 +321,15 @@ async function main() {
     console.log(`Read environment from ${result.sourcePath}`);
     console.log('Generated:');
     for (const path of result.paths) console.log(`  - ${path}`);
+
+    const shouldRun = options.interactive ? await promptToRunApplication() : options.run;
+    if (shouldRun) {
+      console.log('Starting the application with npm run dev...');
+      const exitCode = await runApplication();
+      if (exitCode !== 0) process.exitCode = exitCode;
+    } else if (options.interactive) {
+      console.log('Environment files are ready. The application was not started.');
+    }
   } catch (error) {
     console.error(`env:setup failed: ${error.message}`);
     console.error(usage());
