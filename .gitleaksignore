@@ -1,0 +1,7 @@
+# Known-safe placeholder values in the environment template's history.
+384801ed485da1445782c88aeb2ad61c22ca3aeb:.env.example:generic-api-key:53
+384801ed485da1445782c88aeb2ad61c22ca3aeb:.env.example:generic-api-key:74
+384801ed485da1445782c88aeb2ad61c22ca3aeb:.env.example:generic-api-key:95
+
+# Known-safe test fixture in setup-env's history.
+180d1ad312d68a33444d2f766087a453a0177ca4:scripts/setup-env.test.mjs:generic-api-key:21
