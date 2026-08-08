@@ -84,6 +84,9 @@ export const en: Dictionary = {
     backupCodesTitle: 'Save your backup codes',
     backupCodesSubtitle:
       'Each code can be used once if you lose access to your authenticator app. Store them somewhere safe — they will not be shown again.',
+    showBackupCodes: 'Show backup codes',
+    hideBackupCodes: 'Hide backup codes',
+    downloadBackupCodes: 'Download backup codes',
     savedCodesConfirm: "I've saved these codes",
     sessionExpiredRedirect: 'Session expired, redirecting to login...',
     regenerateBackupCodes: 'Regenerate backup codes',

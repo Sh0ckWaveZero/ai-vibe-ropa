@@ -81,6 +81,9 @@ export interface Dictionary {
     invalidCode: string;
     backupCodesTitle: string;
     backupCodesSubtitle: string;
+    showBackupCodes: string;
+    hideBackupCodes: string;
+    downloadBackupCodes: string;
     savedCodesConfirm: string;
     sessionExpiredRedirect: string;
     regenerateBackupCodes: string;
