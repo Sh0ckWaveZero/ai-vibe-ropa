@@ -70,7 +70,7 @@ export const th: Dictionary = {
     manualEntryHint: 'สแกนไม่ได้? กรอกโค้ดนี้ด้วยตนเอง:',
     showSetupSecret: 'แสดงคีย์ตั้งค่า',
     hideSetupSecret: 'ซ่อนคีย์ตั้งค่า',
-    copySetupSecret: 'คัดลอกคีย์ตั้งค่า',
+    copySetupSecret: 'คัดลอก',
     setupSecretCopied: 'คัดลอกคีย์แล้ว',
     setupSecretCopyFailed: 'คัดลอกคีย์ไม่สำเร็จ',
     enterCode: 'กรอกรหัส 6 หลัก',
