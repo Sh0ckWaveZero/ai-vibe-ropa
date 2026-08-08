@@ -45,6 +45,48 @@ describe('Dialog', () => {
     expect(dialog).toHaveAttribute('aria-labelledby', heading.id);
   });
 
+  it('offers a visible close action and returns focus to the opener', async () => {
+    const user = userEvent.setup();
+    render(DialogHarness);
+
+    const opener = screen.getByRole('button', { name: 'User menu' });
+    await user.click(opener);
+    await user.click(screen.getByRole('button', { name: 'Open logout dialog' }));
+
+    await user.click(screen.getByRole('button', { name: 'Close' }));
+
+    await waitFor(() => expect(screen.queryByRole('dialog')).not.toBeInTheDocument());
+    expect(opener).toHaveFocus();
+  });
+
+  it('localizes the close action with the active locale', async () => {
+    const user = userEvent.setup();
+    render(DialogHarness);
+
+    await user.click(screen.getByRole('button', { name: 'Use Thai' }));
+    await user.click(screen.getByRole('button', { name: 'User menu' }));
+    await user.click(screen.getByRole('button', { name: 'Open logout dialog' }));
+
+    expect(screen.getByRole('button', { name: 'ปิด' })).toBeInTheDocument();
+  });
+
+  it('closes on an Escape cancel request and returns focus', async () => {
+    const user = userEvent.setup();
+    render(DialogHarness);
+
+    const opener = screen.getByRole('button', { name: 'User menu' });
+    await user.click(opener);
+    await user.click(screen.getByRole('button', { name: 'Open logout dialog' }));
+
+    await fireEvent(
+      screen.getByRole('dialog', { name: 'Confirm logout' }),
+      new Event('cancel', { cancelable: true }),
+    );
+
+    await waitFor(() => expect(screen.queryByRole('dialog')).not.toBeInTheDocument());
+    expect(opener).toHaveFocus();
+  });
+
   it('focuses the safe action and returns focus to the opener when closed', async () => {
     const user = userEvent.setup();
     render(DialogHarness);
@@ -61,19 +103,16 @@ describe('Dialog', () => {
     expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
   });
 
-  it('does not dismiss when the backdrop is clicked', async () => {
-    const user = userEvent.setup();
+  it('dismisses from the backdrop and returns focus to the opener', async () => {
     render(DialogHarness);
 
     const opener = screen.getByRole('button', { name: 'User menu' });
-    await user.click(opener);
-    await user.click(screen.getByRole('button', { name: 'Open logout dialog' }));
+    await fireEvent.click(opener);
+    await fireEvent.click(screen.getByRole('button', { name: 'Open logout dialog' }));
     const dialog = screen.getByRole('dialog', { name: 'Confirm logout' });
-    expect(dialog).toHaveAttribute('closedby', 'closerequest');
+    expect(dialog).toHaveAttribute('closedby', 'any');
     await fireEvent.click(dialog, { clientX: 20, clientY: 20 });
-    expect(dialog).toHaveAttribute('open');
 
-    await user.click(screen.getByRole('button', { name: 'Cancel' }));
     await waitFor(() => expect(screen.queryByRole('dialog')).not.toBeInTheDocument());
     expect(opener).toHaveFocus();
   });

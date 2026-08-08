@@ -1,12 +1,16 @@
 <script lang="ts">
+  import { createLocaleContext } from '$lib/i18n';
   import Button from './Button.svelte';
   import Dialog from './Dialog.svelte';
+
+  const { locale } = createLocaleContext(() => 'en');
 
   let open = $state(false);
   let menuOpen = $state(false);
   let menuTrigger: HTMLButtonElement | undefined = $state();
 </script>
 
+<button type="button" onclick={() => locale.set('th')}>Use Thai</button>
 <button bind:this={menuTrigger} type="button" onclick={() => (menuOpen = true)}>User menu</button>
 {#if menuOpen}
   <button
