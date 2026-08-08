@@ -108,12 +108,13 @@
     {:else}
       <div class="overflow-x-auto">
         <table class="w-full text-left text-sm">
+          <caption class="sr-only">{$t('audit.title')}</caption>
           <thead>
             <tr class="border-b border-border text-xs text-muted">
-              <th class="py-2 pr-4">{$t('audit.when')}</th>
-              <th class="py-2 pr-4">{$t('audit.who')}</th>
-              <th class="py-2 pr-4">{$t('audit.action')}</th>
-              <th class="py-2 pr-4">{$t('audit.entity')}</th>
+              <th scope="col" class="py-2 pr-4">{$t('audit.when')}</th>
+              <th scope="col" class="py-2 pr-4">{$t('audit.who')}</th>
+              <th scope="col" class="py-2 pr-4">{$t('audit.action')}</th>
+              <th scope="col" class="py-2 pr-4">{$t('audit.entity')}</th>
             </tr>
           </thead>
           <tbody>

@@ -17,8 +17,8 @@
 </script>
 
 {#if total > 0}
-  <div class="flex items-center justify-between gap-3 pt-2 text-sm text-muted">
-    <span>{$t('common.paginationSummary', { from, to, total })}</span>
+  <nav aria-label={$t('common.paginationLabel')} class="flex items-center justify-between gap-3 pt-2 text-sm text-muted">
+    <span aria-live="polite">{$t('common.paginationSummary', { from, to, total })}</span>
     <div class="flex gap-2">
       <Button variant="secondary" size="sm" disabled={page <= 1} onclick={() => onChange(page - 1)}>
         {$t('common.previous')}
@@ -27,5 +27,5 @@
         {$t('common.next')}
       </Button>
     </div>
-  </div>
+  </nav>
 {/if}

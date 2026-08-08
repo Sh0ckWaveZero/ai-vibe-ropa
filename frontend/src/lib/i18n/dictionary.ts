@@ -28,6 +28,8 @@ export interface Dictionary {
     previous: string;
     next: string;
     paginationSummary: string;
+    paginationLabel: string;
+    skipToContent: string;
   };
   nav: {
     dashboard: string;
@@ -38,6 +40,11 @@ export interface Dictionary {
     auditLog: string;
     logout: string;
     profile: string;
+    primary: string;
+    menu: string;
+    closeMenu: string;
+    userMenu: string;
+    closeUserMenu: string;
   };
   auth: {
     loginTitle: string;
@@ -227,6 +234,7 @@ export interface Dictionary {
     title: string;
     empty: string;
     markAllRead: string;
+    close: string;
     submitted: string;
     approved: string;
     rejected: string;

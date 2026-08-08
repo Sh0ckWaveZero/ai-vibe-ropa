@@ -201,15 +201,16 @@
     {:else}
       <div class="overflow-x-auto">
         <table class="w-full text-left text-sm">
+          <caption class="sr-only">{$t('users.title')}</caption>
           <thead>
             <tr class="border-b border-border text-xs text-muted">
-              <th class="py-2 pr-4">{$t('users.fullName')}</th>
-              <th class="py-2 pr-4">{$t('users.email')}</th>
-              <th class="py-2 pr-4">{$t('users.role')}</th>
-              <th class="py-2 pr-4">{$t('users.department')}</th>
-              <th class="py-2 pr-4">{$t('users.status')}</th>
-              <th class="py-2 pr-4">{$t('users.twoFaColumn')}</th>
-              <th class="py-2 pr-4">{$t('common.actions')}</th>
+              <th scope="col" class="py-2 pr-4">{$t('users.fullName')}</th>
+              <th scope="col" class="py-2 pr-4">{$t('users.email')}</th>
+              <th scope="col" class="py-2 pr-4">{$t('users.role')}</th>
+              <th scope="col" class="py-2 pr-4">{$t('users.department')}</th>
+              <th scope="col" class="py-2 pr-4">{$t('users.status')}</th>
+              <th scope="col" class="py-2 pr-4">{$t('users.twoFaColumn')}</th>
+              <th scope="col" class="py-2 pr-4">{$t('common.actions')}</th>
             </tr>
           </thead>
           <tbody>
@@ -227,10 +228,10 @@
                 </td>
                 <td class="py-2 pr-4">
                   <div class="flex gap-2">
-                    <button class="text-primary hover:underline" onclick={() => openEdit(u)}>{$t('common.edit')}</button>
-                    <button class="text-primary hover:underline" onclick={() => openReset(u)}>{$t('users.resetPassword')}</button>
+                    <button type="button" class="text-primary hover:underline" onclick={() => openEdit(u)}>{$t('common.edit')}</button>
+                    <button type="button" class="text-primary hover:underline" onclick={() => openReset(u)}>{$t('users.resetPassword')}</button>
                     {#if u.totpEnabled}
-                      <button class="text-red-600 hover:underline" onclick={() => openReset2fa(u)}>{$t('twoFactor.resetAction')}</button>
+                      <button type="button" class="text-red-600 hover:underline" onclick={() => openReset2fa(u)}>{$t('twoFactor.resetAction')}</button>
                     {/if}
                   </div>
                 </td>

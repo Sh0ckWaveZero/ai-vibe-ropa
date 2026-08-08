@@ -14,6 +14,7 @@
     size = 'md',
     loading = false,
     disabled = false,
+    type = 'button',
     class: className = '',
     children,
     ...rest
@@ -38,7 +39,9 @@
 
 <button
   {...rest}
+  {type}
   disabled={disabled || loading}
+  aria-busy={loading || undefined}
   class="{base} {variants[variant]} {sizes[size]} {className}"
 >
   {#if loading}
