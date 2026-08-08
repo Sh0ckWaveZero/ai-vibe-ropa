@@ -33,7 +33,7 @@ if [ -z "${DATABASE_URL:-}" ]; then
 fi
 
 echo "Applying database migrations..."
-npx prisma migrate deploy
+./node_modules/.bin/prisma migrate deploy
 
 echo "Seeding default roles, permissions, departments and admin user..."
 node dist/db/seed/index.js
