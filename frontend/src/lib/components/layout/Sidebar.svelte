@@ -71,7 +71,15 @@
     : ''}"
 >
   <div class="flex h-14 items-center gap-2 border-b border-border px-5">
-    <span class="size-2.5 rounded-full bg-primary" aria-hidden="true"></span>
+    <img
+      src="/ropa-logo.png"
+      alt=""
+      width="28"
+      height="28"
+      class="size-7 rounded-md bg-white p-0.5 shadow-sm ring-1 ring-black/5"
+      loading="eager"
+      decoding="async"
+    />
     <span class="font-semibold text-body">ROPA</span>
   </div>
   <nav aria-label={$t('nav.primary')} class="p-3">
