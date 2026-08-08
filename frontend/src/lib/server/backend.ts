@@ -1,7 +1,8 @@
 import type { RequestEvent } from '@sveltejs/kit';
 import { env } from '$env/dynamic/private';
 
-const BACKEND_ORIGIN = env.BACKEND_ORIGIN ?? 'http://localhost:4000';
+const BACKEND_ORIGIN =
+  env.BACKEND_ORIGIN ?? `http://${env.BACKEND_HOST ?? 'localhost'}:${env.BACKEND_PORT ?? '4000'}`;
 
 export async function serverFetch(event: RequestEvent, path: string, init: RequestInit = {}): Promise<Response> {
   const cookie = event.request.headers.get('cookie') ?? '';
