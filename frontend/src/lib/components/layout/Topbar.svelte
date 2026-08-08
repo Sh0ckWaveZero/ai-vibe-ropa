@@ -16,6 +16,7 @@
   let userMenuOpen = $state(false);
   let logoutOpen = $state(false);
   let loggingOut = $state(false);
+  let userMenuTriggerEl: HTMLButtonElement | undefined = $state();
 
   function roleName(user: SessionUser) {
     return $locale === 'th' ? user.roleNameTh : $locale === 'zh' ? user.roleNameZh : user.roleNameEn;
@@ -81,6 +82,7 @@
 
     <div class="relative">
       <button
+        bind:this={userMenuTriggerEl}
         onclick={() => (userMenuOpen = !userMenuOpen)}
         class="flex items-center gap-2 rounded-md px-2 py-1.5 text-sm hover:bg-surface-muted"
       >
@@ -129,10 +131,10 @@
   </div>
 </header>
 
-<Dialog bind:open={logoutOpen} title={$t('auth.logoutConfirmTitle')}>
+<Dialog bind:open={logoutOpen} title={$t('auth.logoutConfirmTitle')} restoreFocusTo={userMenuTriggerEl}>
   <p class="text-muted">{$t('auth.logoutConfirmBody')}</p>
   {#snippet footer()}
-    <Button variant="secondary" onclick={() => (logoutOpen = false)}>{$t('common.cancel')}</Button>
+    <Button variant="secondary" autofocus onclick={() => (logoutOpen = false)}>{$t('common.cancel')}</Button>
     <Button variant="danger" loading={loggingOut} onclick={confirmLogout}>{$t('nav.logout')}</Button>
   {/snippet}
 </Dialog>
