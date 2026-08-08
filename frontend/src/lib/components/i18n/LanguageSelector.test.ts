@@ -19,6 +19,15 @@ describe('LanguageSelector', () => {
     const currentFlag = document.getElementById('test-language-selector-current-flag');
     expect(currentFlag).toHaveClass('fi', 'fi-gb');
     expect(currentFlag).toHaveAttribute('aria-hidden', 'true');
+    expect(currentFlag).toHaveClass('shadow-[inset_0_0_0_1px_rgba(0,0,0,0.12)]');
+    expect(trigger).toHaveClass('border-transparent', 'bg-surface-muted/50', 'shadow-none');
+    expect(trigger).toHaveClass(
+      'hover:bg-surface-muted',
+      'focus-visible:outline-2',
+      'focus-visible:outline-offset-2',
+      'focus-visible:outline-primary',
+    );
+    expect(trigger).not.toHaveClass('border-border', 'shadow-sm');
     expect(trigger).toHaveAttribute('aria-expanded', 'false');
     expect(trigger).toHaveTextContent('English');
 
@@ -26,6 +35,7 @@ describe('LanguageSelector', () => {
 
     const listbox = screen.getByRole('listbox', { name: 'Choose a language' });
     expect(listbox).toBeInTheDocument();
+    expect(trigger).toHaveClass('ring-1', 'ring-primary/40');
     expect(listbox).toHaveAttribute('id', 'test-language-selector-listbox');
     expect(trigger).toHaveAttribute('aria-controls', listbox.id);
     const englishOption = screen.getByRole('option', { name: 'English' });
