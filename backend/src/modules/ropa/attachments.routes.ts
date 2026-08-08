@@ -15,8 +15,13 @@ const router = Router({ mergeParams: true });
 const upload = multer({
   storage: multer.diskStorage({
     destination: (req, _file, cb) => {
+      const recordId = req.params.id;
+      if (typeof recordId !== 'string') {
+        cb(AppError.badRequest('Invalid ROPA record id'), '');
+        return;
+      }
       attachmentsService
-        .ensureRecordUploadDir(req.params.id)
+        .ensureRecordUploadDir(recordId)
         .then((dir) => cb(null, dir))
         .catch((err) => cb(err as Error, ''));
     },

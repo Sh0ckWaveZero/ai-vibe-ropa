@@ -1,4 +1,4 @@
-name: Claude Code Review
+name: PR · AI Code Review (Claude)
 
 on:
   pull_request:
@@ -6,21 +6,24 @@ on:
 
 jobs:
   claude-review:
+    name: Review · Security and Correctness
     runs-on: ubuntu-latest
+    timeout-minutes: 20
     permissions:
       contents: read
       pull-requests: write
       issues: write
     steps:
-      - uses: actions/checkout@v7
+      - name: Check out pull request history
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
         with:
           fetch-depth: 0
 
       # Requires an ANTHROPIC_API_KEY (or CLAUDE_CODE_OAUTH_TOKEN) repo secret —
-      # see CI-CD.md for setup. This job fails harmlessly (no PR comment)
+      # see docs/ci.md for setup. This job fails harmlessly (no PR comment)
       # until that secret is added.
       - name: Run Claude Code review
-        uses: anthropics/claude-code-action@v1
+        uses: anthropics/claude-code-action@6b082c41935b4c8a3b8b0ef85ba4ba4d9eeb8975 # v1
         with:
           anthropic_api_key: ${{ secrets.ANTHROPIC_API_KEY }}
           direct_prompt: |

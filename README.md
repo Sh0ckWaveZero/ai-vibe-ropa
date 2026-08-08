@@ -13,7 +13,7 @@ HTTPS เสมอ, แนบไฟล์ประกอบและแจ้ง
 | ส่วนประกอบ | เทคโนโลยี |
 |---|---|
 | 🎨 หน้าบ้าน (Frontend) | SvelteKit 5 + Tailwind CSS v4 (ธีมเทา/ทอง/เหลือง พร้อม Dark Mode) |
-| ⚙️ หลังบ้าน (Backend) | Node.js + Express + TypeScript, Prisma ORM |
+| ⚙️ หลังบ้าน (Backend) | Node.js 24 + Express 5 + TypeScript 5.9, Prisma ORM 7 |
 | 🗄️ ฐานข้อมูล | PostgreSQL |
 | 🌐 Reverse proxy | nginx (ส่ง `/api/*` ไปที่ backend ส่วนที่เหลือส่งไปที่ frontend) |
 | 🐳 การรัน | ทุกอย่างรันผ่าน `docker compose` |
@@ -180,11 +180,13 @@ Authenticator หรือ Authy) ก่อนเข้าใช้งานไ�
 
 ## 🛡️ ความปลอดภัยและ CI/CD
 
-ทุก push/PR จะรันผ่านไปป์ไลน์อัตโนมัติ: ตรวจ secret รั่วไหล → build/typecheck →
-สแกน dependency (npm audit) + static analysis (CodeQL) → build image และสแกนด้วย
-Trivy → ให้ Claude อ่าน diff แล้วคอมเมนต์รีวิวความปลอดภัย/ความถูกต้องของโค้ด
-รายละเอียดทั้งหมดอยู่ที่ [`CI-CD.md`](CI-CD.md) และมาตรการความปลอดภัย
-ที่ระบบใช้อยู่ตอนนี้อยู่ที่ [`SECURITY.md`](SECURITY.md)
+ทุก push/PR ที่เข้า `main` หรือ `develop` จะรันไปป์ไลน์อัตโนมัติ: ตรวจ secret
+รั่วไหล → generate Prisma Client + build/typecheck → integration tests กับ PostgreSQL
+→ สแกน dependency (npm audit) + static analysis (CodeQL) → build image และสแกนด้วย
+Trivy ส่วน pull request มี workflow แยกให้ Claude อ่าน diff และคอมเมนต์รีวิว
+ความปลอดภัย/ความถูกต้องของโค้ด รายละเอียดแต่ละ job, dependency graph,
+มาตรฐานการตั้งชื่อ และ required checks อยู่ที่ [`docs/ci.md`](docs/ci.md)
+ส่วนมาตรการความปลอดภัยที่ระบบใช้อยู่ตอนนี้อยู่ที่ [`SECURITY.md`](SECURITY.md)
 
 ## 💻 การพัฒนาในเครื่อง (ไม่ใช้ Docker ทั้งหมด)
 
@@ -196,7 +198,8 @@ docker compose up -d postgres
 cd backend
 cp .env.example .env   # ชี้ DATABASE_URL ไปที่ postgres ของตนเอง + ใส่ secrets (ดูคอมเมนต์ในไฟล์)
 npm install
-npx prisma migrate deploy
+npm run prisma:generate
+npm run prisma:migrate
 npm run seed
 npm run dev             # http://localhost:4000
 
@@ -207,12 +210,21 @@ npm install
 npm run dev              # http://localhost:5173, proxy /api ไปที่ :4000
 ```
 
+Backend ใช้ Prisma ORM 7 โดยอ่าน schema และ datasource ผ่าน
+`backend/prisma.config.ts`, generate client ไปที่ `backend/src/generated/prisma`
+(ไม่ commit เข้า Git) และเชื่อม PostgreSQL ผ่าน `@prisma/adapter-pg` ดังนั้นหลังแก้
+`schema.prisma` หรือ checkout dependency ใหม่ ให้รัน `npm run prisma:generate`
+ก่อน build เสมอ ค่า `DATABASE_URL` ต้องอยู่ใน environment หรือ `backend/.env`
+ก่อนเรียกคำสั่ง Prisma
+
 ## 📁 โครงสร้างโปรเจกต์
 
 ```
 backend/
+  prisma.config.ts           Prisma v7 config: schema, migrations, seed และ DATABASE_URL
   prisma/schema.prisma       โมเดลข้อมูล (users, roles, permissions, departments, ropa_records,
                               ropa_attachments, notifications, backup_codes, audit_logs)
+  src/generated/prisma/      Prisma Client ที่ generate ในเครื่อง/CI (ไม่ commit เข้า Git)
   src/modules/                 1 โฟลเดอร์ต่อ 1 resource: auth, users, roles, departments, ropa
                               (+ attachments.routes/service.ts ในโฟลเดอร์เดียวกัน), audit, notifications
   src/middleware/               requireAuth / requireAnyPermission / requirePreAuth (ขั้น 2FA) / rateLimit
@@ -233,7 +245,8 @@ nginx/
   nginx.conf                    main config (include conf.d/*.conf)
   templates/default.conf.template  HTTP→HTTPS redirect + HTTPS reverse proxy (envsubst ตอน container start)
 .github/workflows/             ci.yml (build/scan pipeline) + claude-review.yml (Claude รีวิว PR)
-CI-CD.md                       รายละเอียดไปป์ไลน์ CI/CD (ไปป์ไลน์จริงอยู่ที่ .github/workflows/)
+docs/ci.md                     รายละเอียดขั้นตอน ชื่อ flow และมาตรฐานของ CI/CD
+CI-CD.md                       ลิงก์ compatibility ไปยัง docs/ci.md
 SECURITY.md                    นโยบายความปลอดภัยและวิธีรายงานช่องโหว่
 CREDITS.md                     แหล่งที่มาของโค้ด/ไลบรารีที่อ้างอิงหรือดัดแปลงมา
 ```
