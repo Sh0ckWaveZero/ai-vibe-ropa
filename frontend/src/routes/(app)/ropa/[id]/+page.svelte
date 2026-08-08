@@ -425,6 +425,7 @@
               </div>
               {#if isEditable}
                 <button
+                  type="button"
                   class="shrink-0 text-red-600 hover:underline"
                   onclick={() => openDeleteAttachment(a)}
                 >

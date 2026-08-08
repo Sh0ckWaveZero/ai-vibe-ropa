@@ -4,7 +4,7 @@ import { dictionaries } from './dictionaries';
 import { LOCALE_COOKIE, type Locale } from './types';
 
 export type { Locale } from './types';
-export { LOCALES, LOCALE_LABELS, LOCALE_COOKIE, isLocale } from './types';
+export { LOCALES, LOCALE_LABELS, LOCALE_COUNTRY_CODES, LOCALE_COOKIE, isLocale } from './types';
 
 type Translate = (path: string, params?: Record<string, string | number>) => string;
 

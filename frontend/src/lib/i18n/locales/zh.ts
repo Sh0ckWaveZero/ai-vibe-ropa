@@ -30,6 +30,8 @@ export const zh: Dictionary = {
     previous: '上一页',
     next: '下一页',
     paginationSummary: '显示第 {from}-{to} 项，共 {total} 项',
+    paginationLabel: '分页',
+    skipToContent: '跳到主要内容',
   },
   nav: {
     dashboard: '仪表盘',
@@ -40,6 +42,11 @@ export const zh: Dictionary = {
     auditLog: '审计日志',
     logout: '退出登录',
     profile: '个人资料',
+    primary: '主导航',
+    menu: '导航菜单',
+    closeMenu: '关闭导航菜单',
+    userMenu: '用户菜单',
+    closeUserMenu: '关闭用户菜单',
   },
   auth: {
     loginTitle: '登录',
@@ -229,10 +236,15 @@ export const zh: Dictionary = {
     title: '通知',
     empty: '暂无通知',
     markAllRead: '全部标为已读',
+    close: '关闭通知',
     submitted: '{referenceNo} 已提交审批',
     approved: '{referenceNo} 已获批准',
     rejected: '{referenceNo} 已被退回',
     rejectedWithReason: '{referenceNo} 已被退回：{rejectionReason}',
+  },
+  language: {
+    selectorLabel: '切换语言。当前语言：{language}',
+    menuLabel: '选择语言',
   },
   theme: {
     light: '浅色',

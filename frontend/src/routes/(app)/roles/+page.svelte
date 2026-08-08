@@ -172,19 +172,20 @@
     {:else}
       <div class="overflow-x-auto">
         <table class="w-full border-collapse text-left text-sm">
+          <caption class="sr-only">{$t('roles.permissionMatrix')}</caption>
           <thead>
             <tr>
-              <th class="sticky left-0 bg-surface-raised py-2 pr-4 align-bottom">
+              <th scope="col" class="sticky left-0 bg-surface-raised py-2 pr-4 align-bottom">
                 {$t('roles.permissionMatrix')}
               </th>
               {#each roles as role (role.id)}
-                <th class="min-w-40 px-3 py-2 align-bottom">
+                <th scope="col" class="min-w-40 px-3 py-2 align-bottom">
                   <div class="flex flex-col gap-1">
                     <span class="font-medium text-body">{roleName(role)}</span>
                     {#if role.isSystem}
                       <Badge label={$t('roles.systemRole')} />
                     {:else}
-                      <button class="text-xs text-red-600 hover:underline" onclick={() => openDelete(role)}>
+                      <button type="button" class="text-xs text-red-600 hover:underline" onclick={() => openDelete(role)}>
                         {$t('common.delete')}
                       </button>
                     {/if}
@@ -205,11 +206,12 @@
               </tr>
               {#each perms as perm (perm.code)}
                 <tr class="border-b border-border">
-                  <td class="sticky left-0 bg-surface-raised py-2 pr-4 text-body">{permDescription(perm)}</td>
+                  <th scope="row" class="sticky left-0 bg-surface-raised py-2 pr-4 text-left font-normal text-body">{permDescription(perm)}</th>
                   {#each roles as role (role.id)}
                     <td class="px-3 py-2 text-center">
                       <Checkbox
                         checked={isChecked(role.id, perm.code)}
+                        aria-label={`${permDescription(perm)} — ${roleName(role)}`}
                         onchange={(e: Event) => toggle(role.id, perm.code, (e.target as HTMLInputElement).checked)}
                       />
                     </td>
