@@ -28,7 +28,8 @@ export function createApp() {
   // deliberately — it's deprecated upstream and pulls in its own
   // advisories; this is the same OWASP double-submit-cookie pattern,
   // hand-rolled with a timing-safe comparison instead.
-  app.use(cookieParser()); // codeql[js/missing-token-validation]
+  // codeql[js/missing-token-validation]
+  app.use(cookieParser());
   app.use(requireCsrf);
   app.use(express.json({ limit: '1mb' }));
   app.use(morgan(env.NODE_ENV === 'development' ? 'dev' : 'combined'));

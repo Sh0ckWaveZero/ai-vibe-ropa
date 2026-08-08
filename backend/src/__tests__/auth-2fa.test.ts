@@ -102,11 +102,14 @@ describe('Two-factor authentication flow', () => {
     expect(res.status).toBe(403);
   });
 
-  it('a mutating request without a CSRF token is rejected', async () => {
-    const { email, password } = await createTestUser({ roleCode: 'viewer' });
-    const { agent } = await csrfAgent();
-    // Deliberately bypass the CSRF-aware wrapper via a fresh request-less call.
-    const res = await agent.post('/api/auth/login').set('X-CSRF-Token', '').send({ email, password });
-    expect(res.status).toBe(403);
-  });
+  it.each(['post', 'put', 'patch', 'delete'] as const)(
+    'a %s request without a CSRF token is rejected',
+    async (method) => {
+      const { agent } = await csrfAgent();
+      const res = await agent[method]('/api/auth/login').set('X-CSRF-Token', '');
+
+      expect(res.status).toBe(403);
+      expect(res.body.error.code).toBe('CSRF_INVALID');
+    },
+  );
 });
