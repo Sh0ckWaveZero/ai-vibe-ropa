@@ -49,7 +49,8 @@ services:
 
   backend:
     build:
-      context: ./backend
+      context: .
+      dockerfile: backend/Dockerfile
     init: true
     restart: unless-stopped
     depends_on:
@@ -98,7 +99,8 @@ services:
 
   frontend:
     build:
-      context: ./frontend
+      context: .
+      dockerfile: frontend/Dockerfile
     init: true
     restart: unless-stopped
     depends_on:

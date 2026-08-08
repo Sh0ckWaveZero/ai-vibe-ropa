@@ -9,7 +9,8 @@
   }
 
   let { label, value = $bindable(), error, hint, id, class: className = '', ...rest }: Props = $props();
-  const inputId = id ?? `input-${Math.random().toString(36).slice(2, 9)}`;
+  const generatedId = $props.id();
+  const inputId = $derived(id ?? generatedId);
 </script>
 
 <div class="flex flex-col gap-1">

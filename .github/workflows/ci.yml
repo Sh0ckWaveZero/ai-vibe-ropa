@@ -30,15 +30,12 @@ jobs:
           docker run --rm -v "$PWD:/repo" zricethezav/gitleaks:v8.30.0 detect \
             --source=/repo --config=/repo/.gitleaks.toml --no-banner --redact -v
 
-  backend-build:
-    name: Backend · Generate Client and Build
+  workspace-build:
+    name: Workspace · Install, Check, and Build
     runs-on: ubuntu-latest
     timeout-minutes: 15
-    defaults:
-      run:
-        working-directory: backend
     env:
-      # Prisma v7 evaluates prisma.config.ts even when generate does not connect.
+      BACKEND_ORIGIN: http://localhost:4000
       DATABASE_URL: postgresql://ropa:ropa@localhost:5433/ropa_ci?schema=public
     steps:
       - name: Check out repository
@@ -48,37 +45,12 @@ jobs:
         with:
           node-version: 24
           cache: npm
-          cache-dependency-path: backend/package-lock.json
-      - name: Install backend dependencies
+          cache-dependency-path: package-lock.json
+      - name: Install workspace dependencies
         run: npm ci
-      - name: Generate Prisma Client
-        run: npm run prisma:generate
-      - name: Type-check and build backend
-        run: npm run build
-
-  frontend-build:
-    name: Frontend · Check and Build
-    runs-on: ubuntu-latest
-    timeout-minutes: 15
-    defaults:
-      run:
-        working-directory: frontend
-    env:
-      BACKEND_ORIGIN: http://localhost:4000
-    steps:
-      - name: Check out repository
-        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
-      - name: Set up Node.js 24 with npm cache
-        uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7
-        with:
-          node-version: 24
-          cache: npm
-          cache-dependency-path: frontend/package-lock.json
-      - name: Install frontend dependencies
-        run: npm ci
-      - name: Run Svelte and TypeScript checks
+      - name: Run workspace checks
         run: npm run check
-      - name: Build frontend
+      - name: Build workspaces
         run: npm run build
 
   # ---- Wave 2: deeper scans — only once the code actually builds ----
@@ -87,7 +59,7 @@ jobs:
     name: Backend · Run Integration Tests
     runs-on: ubuntu-latest
     timeout-minutes: 20
-    needs: [backend-build]
+    needs: [workspace-build]
     services:
       postgres:
         image: postgres:18.4-alpine3.24
@@ -102,9 +74,6 @@ jobs:
           --health-interval 5s
           --health-timeout 5s
           --health-retries 10
-    defaults:
-      run:
-        working-directory: backend
     env:
       DATABASE_URL: postgresql://ropa:ropa@localhost:5433/ropa_test?schema=public
     steps:
@@ -115,25 +84,20 @@ jobs:
         with:
           node-version: 24
           cache: npm
-          cache-dependency-path: backend/package-lock.json
-      - name: Install backend dependencies
+          cache-dependency-path: package-lock.json
+      - name: Install workspace dependencies
         run: npm ci
-      - name: Generate Prisma Client
-        run: npm run prisma:generate
-      - name: Run integration tests against PostgreSQL
-        run: npm test
+      - name: Run backend integration tests
+        run: npm run test -- --filter=ropa-backend
 
   dependency-scan:
-    name: Dependencies · Audit ${{ matrix.project }}
+    name: Dependencies · Audit ${{ matrix.workspace }}
     runs-on: ubuntu-latest
     timeout-minutes: 15
-    needs: [backend-build, frontend-build]
+    needs: [workspace-build]
     strategy:
       matrix:
-        project: [backend, frontend]
-    defaults:
-      run:
-        working-directory: ${{ matrix.project }}
+        workspace: [ropa-backend, ropa-frontend]
     steps:
       - name: Check out repository
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
@@ -142,17 +106,17 @@ jobs:
         with:
           node-version: 24
           cache: npm
-          cache-dependency-path: ${{ matrix.project }}/package-lock.json
-      - name: Install ${{ matrix.project }} dependencies
+          cache-dependency-path: package-lock.json
+      - name: Install workspace dependencies
         run: npm ci
       - name: Audit high and critical vulnerabilities
-        run: npm audit --audit-level=high
+        run: npm audit --audit-level=high --workspace=${{ matrix.workspace }}
 
   sast-codeql:
     name: Security · Analyze Source (CodeQL)
     runs-on: ubuntu-latest
     timeout-minutes: 20
-    needs: [backend-build, frontend-build]
+    needs: [workspace-build]
     permissions:
       security-events: write
       contents: read
@@ -178,10 +142,10 @@ jobs:
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
 
       - name: Build backend image
-        run: docker build -t ropa-backend:ci ./backend
+        run: docker build -f backend/Dockerfile -t ropa-backend:ci .
 
       - name: Build frontend image
-        run: docker build -t ropa-frontend:ci ./frontend
+        run: docker build -f frontend/Dockerfile -t ropa-frontend:ci .
 
       - name: Scan backend image for high and critical vulnerabilities
         uses: aquasecurity/trivy-action@ed142fd0673e97e23eac54620cfb913e5ce36c25 # v0.36.0

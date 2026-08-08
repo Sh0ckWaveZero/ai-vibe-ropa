@@ -33,9 +33,9 @@
     nameZh: string;
   }
 
-  const canReadAll = data.user.permissions.includes('ropa.read_all');
-  const canCreate = data.user.permissions.includes('ropa.create');
-  const canExport = data.user.permissions.includes('ropa.export');
+  const canReadAll = $derived(data.user.permissions.includes('ropa.read_all'));
+  const canCreate = $derived(data.user.permissions.includes('ropa.create'));
+  const canExport = $derived(data.user.permissions.includes('ropa.export'));
 
   let records = $state<RopaRecord[]>([]);
   let departments = $state<Department[]>([]);

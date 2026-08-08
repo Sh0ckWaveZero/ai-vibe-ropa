@@ -19,17 +19,27 @@
 
 ```bash
 cp .env.example .env
+
+# แก้ค่า Secret และ URL ใน root .env ให้เรียบร้อย แล้วจึงกระจายค่าไปแต่ละ workspace
+npm run env:setup -- local
 ```
 
-สร้าง secret แล้วนำค่าไปกำหนดใน `.env` ตามคำอธิบายภายในไฟล์:
+สร้าง Secret แยกกันทั้งสามค่า แล้วนำผลลัพธ์ไปใส่ใน active block ของ root `.env`:
 
 ```bash
-# ใช้สร้าง ACCESS_TOKEN_SECRET และ PRE_AUTH_TOKEN_SECRET
-openssl rand -hex 32
-
-# ใช้สร้าง TOTP_ENCRYPTION_KEY (64 ตัวอักษร hex / 32 bytes)
-openssl rand -hex 32
+openssl rand -base64 48 # ACCESS_TOKEN_SECRET
+openssl rand -base64 48 # PRE_AUTH_TOKEN_SECRET
+openssl rand -hex 32    # TOTP_ENCRYPTION_KEY
 ```
+
+> **สำคัญ:** ห้ามเปลี่ยน `TOTP_ENCRYPTION_KEY` หลังมีผู้ใช้ผูก 2FA แล้ว เพราะ key นี้ใช้เข้ารหัส TOTP secret ในฐานข้อมูล การเปลี่ยน key โดยไม่มี migration จะทำให้รหัสจาก Authenticator เดิมใช้ไม่ได้ ผู้ดูแลต้อง reset 2FA และให้ผู้ใช้สแกน QR ใหม่
+
+`env:setup` ใช้ root `.env` เป็น source of truth และสร้างไฟล์ปลายทางตามขอบเขตการใช้งาน:
+
+- `backend/.env` — Prisma และ Backend API
+- `frontend/.env` — Vite/SvelteKit
+
+root `.env` และไฟล์ที่สร้างทั้งหมดถูก Git ignore ห้าม commit ลง repository ส่วน `.env.example` เก็บได้เพราะมีเฉพาะค่าตัวอย่าง
 
 ### 2. เริ่มระบบด้วย Docker Compose
 
@@ -156,6 +166,7 @@ flowchart LR
 | Database | PostgreSQL |
 | Reverse Proxy | nginx |
 | Runtime | Docker Compose หรือ Apple Container |
+| Monorepo | npm Workspaces และ Turborepo |
 
 - nginx ยุติการเชื่อมต่อ TLS และเปลี่ยน HTTP พอร์ต 8080 ไปยัง HTTPS
 - Cookie ถูกกำหนดเป็น `Secure` การเข้าสู่ระบบใน Production จึงต้องทำผ่าน HTTPS
@@ -165,26 +176,148 @@ flowchart LR
 
 ## การพัฒนาและโครงสร้างโปรเจกต์
 
+### จัดการ Environment
+
+เก็บค่าหลักไว้ใน root `.env` โดยเปิดไว้เพียงหนึ่ง Environment block แล้วใช้คำสั่ง `env:setup` สร้าง `backend/.env` และ `frontend/.env`:
+
+| Profile | Source ที่ root | `NODE_ENV` ใน Backend |
+|---|---|---|
+| `local` | block ที่มี `APP_ENV=local` | `development` |
+| `qa` | block ที่มี `APP_ENV=qa` | `production` |
+| `stg` | block ที่มี `APP_ENV=stg` | `production` |
+| `prod` | block ที่มี `APP_ENV=prod` | `production` |
+
+เริ่มจากคัดลอกไฟล์ตัวอย่าง จากนั้น comment block ที่ไม่ได้ใช้และเปิดไว้เฉพาะ block ปัจจุบัน:
+
+```bash
+cp .env.example .env
+```
+
+```dotenv
+# local (active)
+APP_ENV=local
+POSTGRES_DB=ropa
+# ...
+
+# qa (inactive)
+# APP_ENV=qa
+# POSTGRES_DB=ropa_qa
+# ...
+```
+
+`APP_ENV` ใน root `.env` ต้องตรงกับ Environment ที่เลือก ถ้าไม่ตรง script จะหยุดก่อนเขียนไฟล์ ป้องกันการนำค่า local ไปสร้างเป็น qa, stg หรือ prod โดยไม่ตั้งใจ
+
+รันโดยไม่ระบุ profile เพื่อเปิดเมนูเลือก Environment ระบบจะแสดง profile ปัจจุบัน สร้างไฟล์ตามตัวเลือก แล้วถามว่าจะเปิดแอปต่อทันทีหรือไม่:
+
+```bash
+npm run env:setup
+```
+
+```text
+██████╗  ██████╗ ██████╗  █████╗
+██╔══██╗██╔═══██╗██╔══██╗██╔══██╗
+██████╔╝██║   ██║██████╔╝███████║
+██╔══██╗██║   ██║██╔═══╝ ██╔══██║
+██║  ██║╚██████╔╝██║     ██║  ██║
+╚═╝  ╚═╝ ╚═════╝ ╚═╝     ╚═╝  ╚═╝
+Environment Setup  •  local / qa / stg / prod
+
+Current environment: local
+1) current (local)
+2) local
+3) qa
+4) stg
+5) prod
+Select environment [1]:
+Start app? [y/N]:
+```
+
+เลือก `current` หรือกด Enter เพื่อใช้ `APP_ENV` จาก block ที่เปิดอยู่ใน root `.env` จากนั้น script จะสร้าง `backend/.env` และ `frontend/.env` แล้วถามว่าจะเรียก `npm run dev` ต่อหรือไม่
+
+สามารถระบุ profile โดยตรงสำหรับ automation หรือ CI ได้เช่นเดิม:
+
+```bash
+# อ่านค่าจาก Environment block ที่เปิดอยู่ใน root .env
+npm run env:setup -- local
+
+npm run env:setup -- current --force
+npm run env:setup -- local --force --run
+npm run env:setup -- qa
+npm run env:setup -- stg
+npm run env:setup -- prod
+```
+
+ก่อนเปลี่ยน Environment ให้ comment block เดิมและ uncomment block ใหม่ใน root `.env` แล้วรันคำสั่งของ Environment นั้น ค่า `APP_ENV`, Database, Origin, Secret และ Admin account จึงแยกจากกันอย่างชัดเจน
+
+แก้ค่าใน root `.env` เช่น `PUBLIC_ORIGIN`, `BACKEND_ORIGIN`, `CORS_ORIGIN`, `POSTGRES_*` หรือ `DATABASE_URL` แล้วรันคำสั่งอีกครั้ง ถ้าระบุ `DATABASE_URL` script จะใช้ค่านั้นโดยตรง ถ้าไม่ระบุจะประกอบ URL จาก `POSTGRES_USER`, `POSTGRES_PASSWORD`, `POSTGRES_DB`, `POSTGRES_HOST` และ `DATABASE_PORT` โดย fallback ไปใช้ `POSTGRES_HOST_PORT`
+
+ถ้า Apple Container publish พอร์ต PostgreSQL แล้ว DB client พบ `ECONNRESET` หรือ `No route to host (os error 65)` ให้ตรวจ system log ก่อน:
+
+```bash
+container system logs --last 5m | grep -E 'No route to host|connect failed'
+```
+
+ถ้า log ระบุว่า forwarder ต่อเข้า subnet ของ container ไม่ได้ ให้เปิด **System Settings → Privacy & Security → Local Network** สำหรับ Container และ DB client หากมีชื่อแสดงอยู่ในรายการ หากยังไม่หาย ให้ยกเว้นเฉพาะ subnet ของ network `database` ตามแนวทาง Local Network Privacy ของ Apple แล้ว restart เครื่อง:
+
+```bash
+sudo defaults write com.apple.network.local-network AllowedEthernetLocalNetworkAddresses -array-add '192.168.64.0/18'
+sudo defaults write com.apple.network.local-network AllowedWiFiLocalNetworkAddresses -array-add '192.168.64.0/18'
+sudo reboot
+```
+
+หลังเครื่องกลับมา ให้เริ่ม PostgreSQL และตรวจผ่าน Prisma ซึ่งทดสอบ protocol จริง ไม่ใช่แค่ตรวจว่า TCP port เปิดอยู่:
+
+```bash
+container system start
+container-compose --file docker-compose.yml up -d postgres
+npm --workspace backend exec prisma migrate status
+```
+
+สำหรับ local development ให้ Backend และ DB client ต่อผ่าน published port:
+
+```dotenv
+POSTGRES_HOST=localhost
+DATABASE_PORT=5433
+POSTGRES_HOST_PORT=5433
+```
+
+`DATABASE_PORT` คือพอร์ตที่ Backend ใช้ต่อฐานข้อมูล ส่วน `POSTGRES_HOST_PORT` คือพอร์ตที่ Compose publish บนเครื่อง ช่วง `192.168.64.0/18` ครอบคลุม subnet `/24` แบบ dynamic ที่ Apple Container แจกตั้งแต่ `192.168.64.x` ถึง `192.168.127.x`; ตรวจ subnet ปัจจุบันได้ด้วย `container network inspect database`
+
+script จะไม่แก้ root `.env` และไม่เขียนทับไฟล์ปลายทางเดิม หากต้องการสร้าง `backend/.env` และ `frontend/.env` ใหม่ให้ใช้ `--force`:
+
+```bash
+npm run env:setup -- stg --force
+```
+
+> **สำคัญ:** `--force` เขียนทับเฉพาะ `backend/.env` และ `frontend/.env` script จะไม่สลับหรือแก้ block ใน root `.env` ให้
+
 ### รันในเครื่อง
 
 ```bash
+# ติดตั้ง dependencies ของทั้ง workspace จาก root
+npm install
+
+# สร้าง Backend และ Frontend Environment จาก root .env
+npm run env:setup -- local
+
 # PostgreSQL
 docker compose up -d postgres
 
-# Backend
-cd backend
-cp .env.example .env
-npm install
-npm run prisma:generate
+# Database และข้อมูลตั้งต้น
 npm run prisma:migrate
 npm run seed
+
+# เปิด Backend และ Frontend พร้อมกันผ่าน Turborepo TUI
 npm run dev
 
-# Frontend (เปิดอีก Terminal)
-cd frontend
-cp .env.example .env
-npm install
-npm run dev
+# ใช้ log แบบ stream เมื่อ terminal ไม่รองรับ TUI
+npm run dev:stream
+```
+
+`npm run dev` ไม่เรียก `prisma:generate` อัตโนมัติ ถ้าติดตั้ง dependencies ใหม่ อัปเดต Prisma หรือแก้ `backend/prisma/schema.prisma` ให้รันคำสั่งนี้ก่อน:
+
+```bash
+npm run prisma:generate
 ```
 
 - Backend: [http://localhost:4000](http://localhost:4000)
@@ -201,6 +334,9 @@ Backend ใช้ Prisma ORM 7 โดยอ่าน schema และ datasource
 <summary>ดูโครงสร้างโปรเจกต์</summary>
 
 ```text
+package.json                    npm workspace และคำสั่งระดับ monorepo
+package-lock.json               lockfile เดียวของทั้ง workspace
+turbo.json                      task graph และ cache outputs
 backend/
   prisma.config.ts              Prisma v7 config: schema, migrations, seed และ DATABASE_URL
   prisma/schema.prisma          โมเดลข้อมูลหลัก

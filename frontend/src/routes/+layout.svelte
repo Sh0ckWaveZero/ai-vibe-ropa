@@ -6,7 +6,7 @@
 
   let { data, children }: { data: LayoutData; children: Snippet } = $props();
 
-  createLocaleContext(data.locale);
+  createLocaleContext(() => data.locale);
 </script>
 
 {@render children()}
