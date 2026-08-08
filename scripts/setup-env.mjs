@@ -3,7 +3,7 @@
 import { spawn } from 'node:child_process';
 import { constants } from 'node:fs';
 import { access, chmod, mkdir, readFile, writeFile } from 'node:fs/promises';
-import { dirname, resolve } from 'node:path';
+import { dirname, relative, resolve } from 'node:path';
 import { createInterface } from 'node:readline/promises';
 import { parseEnv } from 'node:util';
 import { fileURLToPath } from 'node:url';
@@ -41,6 +41,14 @@ export function renderBanner({ color = false } = {}) {
   return color
     ? `${logo}\n\u001B[2m${subtitle}\u001B[0m\n\n`
     : `${logo}\n${subtitle}\n\n`;
+}
+
+export function formatGeneratedSummary(result, rootDir = REPO_ROOT) {
+  const displayPath = (path) => relative(rootDir, path) || '.';
+  return [
+    `Generated from ${displayPath(result.sourcePath)}:`,
+    ...result.paths.map((path) => `  ✓ ${displayPath(path)}`),
+  ].join('\n');
 }
 
 function usage() {
@@ -345,9 +353,7 @@ async function main() {
 
     const result = await writeEnvironmentFiles(options);
     console.log(`Selected environment: ${result.environment}`);
-    console.log(`Read environment from ${result.sourcePath}`);
-    console.log('Generated:');
-    for (const path of result.paths) console.log(`  - ${path}`);
+    console.log(formatGeneratedSummary(result));
 
     const shouldRun = options.interactive ? await promptToRunApplication() : options.run;
     if (shouldRun) {

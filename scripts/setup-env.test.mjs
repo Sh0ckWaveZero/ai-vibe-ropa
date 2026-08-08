@@ -7,6 +7,7 @@ import test from 'node:test';
 
 import {
   detectCurrentEnvironment,
+  formatGeneratedSummary,
   isConfirmed,
   parseArgs,
   renderBanner,
@@ -136,6 +137,20 @@ test('renders a readable ROPA banner with optional terminal color', () => {
   assert.doesNotMatch(plain, /\u001B\[/);
   assert.match(colored, /\u001B\[38;2;/);
   assert.match(colored, /\u001B\[2mEnvironment Setup/);
+});
+
+test('summarizes generated files with relative paths', () => {
+  const rootDir = '/workspace/ropa';
+  const summary = formatGeneratedSummary(
+    {
+      sourcePath: '/workspace/ropa/.env',
+      paths: ['/workspace/ropa/backend/.env', '/workspace/ropa/frontend/.env'],
+    },
+    rootDir,
+  );
+
+  assert.equal(summary, 'Generated from .env:\n  ✓ backend/.env\n  ✓ frontend/.env');
+  assert.doesNotMatch(summary, /\/workspace\/ropa/);
 });
 
 test('runs the root dev script when requested', async () => {
