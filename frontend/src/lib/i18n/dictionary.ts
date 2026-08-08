@@ -65,6 +65,11 @@ export interface Dictionary {
     verifyTitle: string;
     verifySubtitle: string;
     codeOrBackupPlaceholder: string;
+    backupCodeLabel: string;
+    useBackupCode: string;
+    useAuthenticatorCode: string;
+    verifyingCode: string;
+    codeVerified: string;
     verifyButton: string;
     invalidCode: string;
     backupCodesTitle: string;
