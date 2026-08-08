@@ -1,5 +1,5 @@
 import request from 'supertest';
-import { authenticator } from 'otplib';
+import { generate } from 'otplib';
 import { createApp } from '../app.js';
 import { prisma } from '../db/prisma.js';
 import { hashPassword } from '../utils/password.js';
@@ -74,7 +74,7 @@ export async function authenticatedAgent(email: string, password: string) {
   updateToken(loginRes.body.csrfToken);
 
   const setupRes = await agent.post('/api/auth/2fa/setup');
-  const code = authenticator.generate(setupRes.body.secret);
+  const code = await generate({ secret: setupRes.body.secret });
   const confirmRes = await agent.post('/api/auth/2fa/setup/confirm').send({ code });
   if (confirmRes.body.stage !== 'complete') {
     throw new Error(`2FA setup did not complete: ${JSON.stringify(confirmRes.body)}`);

@@ -1,4 +1,4 @@
-name: Claude Code Review
+name: PR · AI Code Review (Claude)
 
 on:
   pull_request:
@@ -6,24 +6,30 @@ on:
 
 jobs:
   claude-review:
+    name: Review · Security and Correctness
     runs-on: ubuntu-latest
+    timeout-minutes: 20
+    env:
+      ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+      CLAUDE_CODE_OAUTH_TOKEN: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
     permissions:
       contents: read
       pull-requests: write
       issues: write
     steps:
-      - uses: actions/checkout@v7
+      - name: Check out pull request history
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
         with:
           fetch-depth: 0
 
-      # Requires an ANTHROPIC_API_KEY (or CLAUDE_CODE_OAUTH_TOKEN) repo secret —
-      # see CI-CD.md for setup. This job fails harmlessly (no PR comment)
-      # until that secret is added.
       - name: Run Claude Code review
-        uses: anthropics/claude-code-action@v1
+        if: env.ANTHROPIC_API_KEY != '' || env.CLAUDE_CODE_OAUTH_TOKEN != ''
+        uses: anthropics/claude-code-action@6b082c41935b4c8a3b8b0ef85ba4ba4d9eeb8975 # v1
         with:
-          anthropic_api_key: ${{ secrets.ANTHROPIC_API_KEY }}
-          direct_prompt: |
+          anthropic_api_key: ${{ env.ANTHROPIC_API_KEY }}
+          claude_code_oauth_token: ${{ env.CLAUDE_CODE_OAUTH_TOKEN }}
+          github_token: ${{ github.token }}
+          prompt: |
             Review this pull request's diff for the ROPA project — an Express +
             Prisma backend and a SvelteKit frontend implementing a GDPR/PDPA
             Record of Processing Activities system with role-based permissions
@@ -42,3 +48,7 @@ jobs:
             Leave one PR review comment summarizing findings, ranked by
             severity, with file:line references. If nothing significant is
             found, say so briefly — do not invent issues to fill space.
+
+      - name: Skip review when Claude credentials are unavailable
+        if: env.ANTHROPIC_API_KEY == '' && env.CLAUDE_CODE_OAUTH_TOKEN == ''
+        run: echo "::notice::AI review skipped because no Claude credential is configured."

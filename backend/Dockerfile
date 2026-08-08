@@ -3,10 +3,12 @@
 FROM node:24.17.0-alpine3.24 AS base
 WORKDIR /app
 COPY package.json package-lock.json ./
+COPY prisma.config.ts ./
 COPY prisma ./prisma
 
 FROM base AS deps
-RUN npm ci && npx prisma generate
+RUN npm ci \
+  && DATABASE_URL='postgresql://generate-only:generate-only@localhost:5432/generate-only' npx prisma generate
 
 FROM deps AS build
 COPY tsconfig.json ./
@@ -25,6 +27,7 @@ RUN apk add --no-cache su-exec \
   && rm -rf /usr/local/lib/node_modules/npm \
   && rm -f /usr/local/bin/npm /usr/local/bin/npx
 COPY --chown=node:node package.json package-lock.json ./
+COPY --chown=node:node prisma.config.ts ./
 COPY --chown=node:node prisma ./prisma
 COPY --from=production-deps --chown=node:node /app/node_modules ./node_modules
 COPY --from=build --chown=node:node /app/dist ./dist

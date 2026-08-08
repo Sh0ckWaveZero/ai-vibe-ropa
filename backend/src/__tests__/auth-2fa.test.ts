@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { authenticator } from 'otplib';
+import { generate } from 'otplib';
 import { createTestUser, csrfAgent } from './helpers.js';
 
 describe('Two-factor authentication flow', () => {
@@ -15,7 +15,7 @@ describe('Two-factor authentication flow', () => {
     expect(setup.body.secret).toBeTruthy();
     expect(setup.body.qrCodeDataUrl).toMatch(/^data:image\/png;base64,/);
 
-    const code = authenticator.generate(setup.body.secret);
+    const code = await generate({ secret: setup.body.secret });
     const confirm = await agent.post('/api/auth/2fa/setup/confirm').send({ code });
     expect(confirm.status).toBe(200);
     expect(confirm.body.stage).toBe('complete');
@@ -48,7 +48,7 @@ describe('Two-factor authentication flow', () => {
     const login = await agent.post('/api/auth/login').send({ email, password });
     updateToken(login.body.csrfToken);
     const setup = await agent.post('/api/auth/2fa/setup');
-    const code = authenticator.generate(setup.body.secret);
+    const code = await generate({ secret: setup.body.secret });
     const confirm = await agent.post('/api/auth/2fa/setup/confirm').send({ code });
     updateToken(confirm.body.csrfToken);
     const backupCode = confirm.body.backupCodes[0];
@@ -102,11 +102,14 @@ describe('Two-factor authentication flow', () => {
     expect(res.status).toBe(403);
   });
 
-  it('a mutating request without a CSRF token is rejected', async () => {
-    const { email, password } = await createTestUser({ roleCode: 'viewer' });
-    const { agent } = await csrfAgent();
-    // Deliberately bypass the CSRF-aware wrapper via a fresh request-less call.
-    const res = await agent.post('/api/auth/login').set('X-CSRF-Token', '').send({ email, password });
-    expect(res.status).toBe(403);
-  });
+  it.each(['post', 'put', 'patch', 'delete'] as const)(
+    'a %s request without a CSRF token is rejected',
+    async (method) => {
+      const { agent } = await csrfAgent();
+      const res = await agent[method]('/api/auth/login').set('X-CSRF-Token', '');
+
+      expect(res.status).toBe(403);
+      expect(res.body.error.code).toBe('CSRF_INVALID');
+    },
+  );
 });
