@@ -8,7 +8,8 @@
   }
 
   let { label, value = $bindable(), hint, id, rows = 3, class: className = '', ...rest }: Props = $props();
-  const areaId = id ?? `textarea-${Math.random().toString(36).slice(2, 9)}`;
+  const generatedId = $props.id();
+  const areaId = $derived(id ?? generatedId);
 </script>
 
 <div class="flex flex-col gap-1">

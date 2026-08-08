@@ -66,8 +66,7 @@
     approvedBy: { id: string; fullName: string } | null;
   }
 
-  const recordId = page.params.id;
-  const perms = data.user.permissions;
+  const recordId = $derived(page.params.id);
 
   let record = $state<RopaRecord | null>(null);
   let departments = $state<Department[]>([]);
@@ -181,12 +180,12 @@
     }
   }
 
-  const canUpdateAll = perms.includes('ropa.update_all');
-  const canUpdateOwn = perms.includes('ropa.update_own');
-  const canSubmit = perms.includes('ropa.submit');
-  const canApprove = perms.includes('ropa.approve');
-  const canDelete = perms.includes('ropa.delete');
-  const canCreate = perms.includes('ropa.create');
+  const canUpdateAll = $derived(data.user.permissions.includes('ropa.update_all'));
+  const canUpdateOwn = $derived(data.user.permissions.includes('ropa.update_own'));
+  const canSubmit = $derived(data.user.permissions.includes('ropa.submit'));
+  const canApprove = $derived(data.user.permissions.includes('ropa.approve'));
+  const canDelete = $derived(data.user.permissions.includes('ropa.delete'));
+  const canCreate = $derived(data.user.permissions.includes('ropa.create'));
 
   const isEditable = $derived.by(() => {
     if (!record) return false;

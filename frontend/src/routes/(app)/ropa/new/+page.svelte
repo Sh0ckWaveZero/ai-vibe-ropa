@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { onMount } from 'svelte';
+  import { onMount, untrack } from 'svelte';
   import { goto } from '$app/navigation';
   import { page } from '$app/state';
   import { getLocaleContext } from '$lib/i18n';
@@ -19,7 +19,7 @@
     nameZh: string;
   }
 
-  const canPickDepartment = data.user.permissions.includes('ropa.update_all');
+  const canPickDepartment = $derived(data.user.permissions.includes('ropa.update_all'));
 
   let departments = $state<Department[]>([]);
   let loadingDepartments = $state(true);
@@ -27,7 +27,7 @@
   let errorMessage = $state('');
 
   let form = $state<RopaFormValue>({
-    departmentId: data.user.departmentId ?? '',
+    departmentId: untrack(() => data.user.departmentId ?? ''),
     activityName: '',
     purpose: '',
     legalBasis: '',

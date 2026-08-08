@@ -35,8 +35,8 @@ function translate(locale: Locale, path: string, params?: Record<string, string 
   return result;
 }
 
-export function createLocaleContext(initial: Locale): LocaleContext {
-  const locale = writable<Locale>(initial);
+export function createLocaleContext(getInitial: () => Locale): LocaleContext {
+  const locale = writable<Locale>(getInitial());
   const t = derived(locale, ($locale): Translate => {
     return (path, params) => translate($locale, path, params);
   });

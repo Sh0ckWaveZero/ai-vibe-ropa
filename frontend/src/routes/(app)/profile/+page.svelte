@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { untrack } from 'svelte';
   import { getLocaleContext } from '$lib/i18n';
   import { apiFetch, ApiError } from '$lib/api/client';
   import Card from '$lib/components/ui/Card.svelte';
@@ -11,7 +12,7 @@
   let { data }: { data: PageData } = $props();
   const { t } = getLocaleContext();
 
-  let fullName = $state(data.user.fullName);
+  let fullName = $state(untrack(() => data.user.fullName));
   let profileSaving = $state(false);
   let profileMessage = $state('');
 
