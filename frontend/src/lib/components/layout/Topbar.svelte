@@ -122,7 +122,10 @@
         aria-expanded={userMenuOpen}
         aria-controls={userMenuPanelId}
       >
-        <span aria-hidden="true" class="flex size-9 items-center justify-center rounded-full bg-primary text-xs font-semibold text-primary-contrast">
+        <span
+          aria-hidden="true"
+          class="flex aspect-square h-9 w-9 min-h-9 min-w-9 shrink-0 items-center justify-center overflow-hidden rounded-full bg-primary text-xs font-semibold text-primary-contrast"
+        >
           {initials(user.fullName)}
         </span>
         <span
@@ -186,7 +189,10 @@
   footerClass="flex-col !border-0 px-8 pb-8 pt-3"
 >
   <div class="mb-5 flex items-center gap-4 rounded-2xl border border-border px-5 py-4 text-left">
-    <span class="flex size-16 shrink-0 items-center justify-center rounded-full bg-primary text-lg font-semibold text-primary-contrast" aria-hidden="true">
+    <span
+      class="flex aspect-square h-16 w-16 min-h-16 min-w-16 shrink-0 items-center justify-center overflow-hidden rounded-full bg-primary text-lg font-semibold text-primary-contrast"
+      aria-hidden="true"
+    >
       {initials(user.fullName)}
     </span>
     <div class="min-w-0">
