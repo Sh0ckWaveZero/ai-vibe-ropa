@@ -29,7 +29,6 @@ export function createApp() {
   // advisories; this is the same OWASP double-submit-cookie pattern,
   // hand-rolled with a timing-safe comparison instead.
 
-  // codeql[js/missing-token-validation]
   app.use(cookieParser());
   app.use(requireCsrf);
   app.use(express.json({ limit: '1mb' }));
