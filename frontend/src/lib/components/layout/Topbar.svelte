@@ -184,7 +184,7 @@
   restoreFocusTo={userMenuTriggerEl}
   class="!rounded-[1.75rem]"
   headerClass="!border-0 px-8 pb-2 pt-9 text-center"
-  titleClass="mx-auto max-w-[18rem] text-[clamp(2rem,8vw,2.75rem)] font-bold leading-tight"
+  titleClass="mx-auto max-w-[24rem] text-balance text-[clamp(1.5rem,5vw,2.25rem)] font-bold leading-[1.2]"
   contentClass="px-8 pb-2 pt-3"
   footerClass="flex-col !border-0 px-8 pb-8 pt-3"
 >
