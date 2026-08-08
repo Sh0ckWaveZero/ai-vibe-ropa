@@ -111,10 +111,10 @@ settings หลัง merge ครั้งแรก ส่วน `Review · Sec
 
 ## ตั้งค่า AI review
 
-สร้าง repository secret ชื่อ `ANTHROPIC_API_KEY` ที่
-**Settings → Secrets and variables → Actions** หากใช้ subscription token ให้เปลี่ยน
-input ของ action เป็น `CLAUDE_CODE_OAUTH_TOKEN` ตามเอกสาร release ที่ pin ไว้
-หากไม่มี secret job นี้จะไม่สามารถเขียน review แต่ไม่กระทบ dependency graph ของ CI หลัก
+สร้าง repository secret ชื่อ `ANTHROPIC_API_KEY` หรือ `CLAUDE_CODE_OAUTH_TOKEN` ที่
+**Settings → Secrets and variables → Actions** workflow รองรับทั้งสองแบบและส่ง
+`github.token` ให้ action โดยตรง หากไม่มี credential ทั้งคู่ job จะเขียน notice ว่าข้าม
+AI review แล้วจบแบบสำเร็จ จึงไม่ทำให้ pull request เป็นสีแดงและไม่กระทบ CI หลัก
 
 ## รัน checks ในเครื่อง
 
