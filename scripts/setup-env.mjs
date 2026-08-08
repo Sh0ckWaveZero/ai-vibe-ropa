@@ -54,7 +54,7 @@ export function formatGeneratedSummary(result, rootDir = REPO_ROOT) {
 function usage() {
   return `Usage: npm run env:setup -- [current|local|qa|stg|prod] [--force] [--run]
 
-Every profile reads .env at the repository root.
+Each profile reads the active APP_ENV block in .env at the repository root.
 Run without a profile to select one interactively, generate the files, and choose whether to start the app.
 
 The command creates backend/.env and frontend/.env. It never changes the source file.
@@ -89,6 +89,14 @@ export function parseArgs(args) {
 }
 
 export async function detectCurrentEnvironment(rootDir = REPO_ROOT) {
+  try {
+    const sourceContent = await readFile(resolve(rootDir, SOURCE_FILE), 'utf8');
+    const sourceEnvironment = resolveSourceEnvironment(parseEnv(sourceContent));
+    if (sourceEnvironment) return sourceEnvironment;
+  } catch (error) {
+    if (error.code !== 'ENOENT') throw error;
+  }
+
   for (const relativePath of ['backend/.env', 'frontend/.env']) {
     try {
       const content = await readFile(resolve(rootDir, relativePath), 'utf8');
@@ -129,6 +137,15 @@ export function isConfirmed(answer) {
   return ['y', 'yes'].includes(answer.trim().toLowerCase());
 }
 
+export function resolveSourceEnvironment(rootEnv) {
+  const environment = rootEnv.APP_ENV?.trim().toLowerCase();
+  if (!environment) return null;
+  if (!Object.hasOwn(PROFILES, environment)) {
+    throw new Error(`APP_ENV must be one of: ${Object.keys(PROFILES).join(', ')}`);
+  }
+  return environment;
+}
+
 async function promptForEnvironment({ rootDir = REPO_ROOT, input = process.stdin, output = process.stdout } = {}) {
   const currentEnvironment = await detectCurrentEnvironment(rootDir);
   const prompt = createInterface({ input, output });
@@ -148,7 +165,7 @@ async function promptForEnvironment({ rootDir = REPO_ROOT, input = process.stdin
 async function promptToRunApplication({ input = process.stdin, output = process.stdout } = {}) {
   const prompt = createInterface({ input, output });
   try {
-    const answer = await prompt.question('Start the application now with "npm run dev"? [y/N]: ');
+    const answer = await prompt.question('Start app? [y/N]: ');
     return isConfirmed(answer);
   } finally {
     prompt.close();
@@ -219,6 +236,7 @@ export function createEnvContents({ environment, rootEnv, sourceName = SOURCE_FI
   const postgresDb = requireValue(rootEnv, 'POSTGRES_DB');
   const postgresHost = rootEnv.POSTGRES_HOST?.trim() || 'localhost';
   const postgresHostPort = optionalInteger(rootEnv, 'POSTGRES_HOST_PORT', 5433, { max: 65535 });
+  const databasePort = optionalInteger(rootEnv, 'DATABASE_PORT', postgresHostPort, { max: 65535 });
   const backendPort = optionalInteger(rootEnv, 'BACKEND_PORT', 4000, { max: 65535 });
   const frontendPort = optionalInteger(rootEnv, 'FRONTEND_PORT', profile.frontendPort, { max: 65535 });
 
@@ -245,7 +263,7 @@ export function createEnvContents({ environment, rootEnv, sourceName = SOURCE_FI
 
   const databaseUrl = rootEnv.DATABASE_URL?.trim()
     ? validateUrl(rootEnv.DATABASE_URL.trim(), 'DATABASE_URL', ['postgres:', 'postgresql:'])
-    : `postgresql://${encodeURIComponent(postgresUser)}:${encodeURIComponent(postgresPassword)}@${postgresHost}:${postgresHostPort}/${encodeURIComponent(postgresDb)}?schema=public`;
+    : `postgresql://${encodeURIComponent(postgresUser)}:${encodeURIComponent(postgresPassword)}@${postgresHost}:${databasePort}/${encodeURIComponent(postgresDb)}?schema=public`;
   const adminEmail = requireValue(rootEnv, 'ADMIN_EMAIL');
   if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(adminEmail)) throw new Error('ADMIN_EMAIL must be a valid email address');
   const adminPassword = requireValue(rootEnv, 'ADMIN_PASSWORD');
@@ -311,6 +329,14 @@ export async function writeEnvironmentFiles({ rootDir = REPO_ROOT, environment, 
     rootEnv = parseEnv(sourceContent);
   } catch (error) {
     throw new Error(`Cannot parse ${sourcePath}: ${error.message}`);
+  }
+
+  const sourceEnvironment = resolveSourceEnvironment(rootEnv);
+  if (sourceEnvironment && sourceEnvironment !== environment) {
+    throw new Error(
+      `Selected environment is ${environment}, but root .env has APP_ENV=${sourceEnvironment}. ` +
+        `Enable the ${environment} block and comment out the other environment blocks first.`,
+    );
   }
 
   const contents = createEnvContents({ environment, rootEnv, sourceName });

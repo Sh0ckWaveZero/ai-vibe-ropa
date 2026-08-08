@@ -12,12 +12,14 @@ import {
   parseArgs,
   renderBanner,
   resolveEnvironmentSelection,
+  resolveSourceEnvironment,
   runApplication,
   writeEnvironmentFiles,
 } from './setup-env.mjs';
 
 function sourceEnv(environment) {
-  return `POSTGRES_USER=ropa
+  return `APP_ENV=${environment}
+POSTGRES_USER=ropa
 POSTGRES_PASSWORD=password-${environment}
 POSTGRES_DB=ropa_${environment}
 POSTGRES_HOST_PORT=6543
@@ -112,6 +114,21 @@ test('requires the selected root source file', async () => {
   }
 });
 
+test('supports a database port separate from the published Postgres port', async () => {
+  const rootDir = await mkdtemp(join(tmpdir(), 'ropa-env-database-port-'));
+
+  try {
+    const source = sourceEnv('local').replace('POSTGRES_HOST_PORT=6543', 'POSTGRES_HOST_PORT=6543\nDATABASE_PORT=5432');
+    await writeFile(join(rootDir, '.env'), source);
+    await writeEnvironmentFiles({ environment: 'local', rootDir });
+    const backendEnv = await readFile(join(rootDir, 'backend/.env'), 'utf8');
+
+    assert.match(backendEnv, /DATABASE_URL=postgresql:\/\/ropa:password-local@localhost:5432\/ropa_local\?schema=public/);
+  } finally {
+    await rm(rootDir, { recursive: true, force: true });
+  }
+});
+
 test('supports interactive choices and confirmation', () => {
   assert.deepEqual(parseArgs([]), { interactive: true, force: false, run: false });
   assert.deepEqual(parseArgs(['current', '--force', '--run']), {
@@ -126,6 +143,23 @@ test('supports interactive choices and confirmation', () => {
   assert.equal(isConfirmed('y'), true);
   assert.equal(isConfirmed('YES'), true);
   assert.equal(isConfirmed('n'), false);
+  assert.equal(resolveSourceEnvironment({ APP_ENV: 'STG' }), 'stg');
+  assert.equal(resolveSourceEnvironment({}), null);
+  assert.throws(() => resolveSourceEnvironment({ APP_ENV: 'demo' }), /APP_ENV must be one of/);
+});
+
+test('rejects a selected profile that does not match the active root block', async () => {
+  const rootDir = await mkdtemp(join(tmpdir(), 'ropa-env-mismatch-'));
+
+  try {
+    await writeFile(join(rootDir, '.env'), sourceEnv('local'));
+    await assert.rejects(
+      writeEnvironmentFiles({ environment: 'prod', rootDir }),
+      /root \.env has APP_ENV=local/,
+    );
+  } finally {
+    await rm(rootDir, { recursive: true, force: true });
+  }
 });
 
 test('renders a readable ROPA banner with optional terminal color', () => {

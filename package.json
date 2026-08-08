@@ -10,7 +10,8 @@
   "scripts": {
     "build": "turbo run build",
     "check": "turbo run check",
-    "dev": "turbo run dev",
+    "dev": "turbo run dev --ui=tui",
+    "dev:stream": "turbo run dev --ui=stream --log-prefix=task",
     "env:setup": "node scripts/setup-env.mjs",
     "test": "turbo run test",
     "prisma:generate": "turbo run prisma:generate",
