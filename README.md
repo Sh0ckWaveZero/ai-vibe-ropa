@@ -183,11 +183,33 @@ flowchart LR
 | `stg` | `.env` | `production` |
 | `prod` | `.env` | `production` |
 
+รันโดยไม่ระบุ profile เพื่อเปิดเมนูเลือก Environment ระบบจะแสดง profile ปัจจุบันและถามยืนยันก่อนเขียนไฟล์:
+
+```bash
+npm run env:setup
+```
+
+```text
+Current environment: local
+1) current (local)
+2) local
+3) qa
+4) stg
+5) prod
+Select environment [1]:
+Run env:setup with "local" using root .env? [y/N]:
+```
+
+เลือก `current` หรือกด Enter เพื่อใช้ profile ล่าสุดที่ถูกสร้างไว้ หากตอบ `y` Script จะสร้าง `backend/.env` และ `frontend/.env` ใหม่ หากไม่ยืนยันจะออกโดยไม่แก้ไฟล์
+
+สามารถระบุ profile โดยตรงสำหรับ automation หรือ CI ได้เช่นเดิม:
+
 ```bash
 # ทุก profile อ่าน root .env ไฟล์เดียวกัน
 cp .env.example .env
 npm run env:setup -- local
 
+npm run env:setup -- current --force
 npm run env:setup -- qa
 npm run env:setup -- stg
 npm run env:setup -- prod

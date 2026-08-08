@@ -4,7 +4,13 @@ import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import test from 'node:test';
 
-import { writeEnvironmentFiles } from './setup-env.mjs';
+import {
+  detectCurrentEnvironment,
+  isConfirmed,
+  parseArgs,
+  resolveEnvironmentSelection,
+  writeEnvironmentFiles,
+} from './setup-env.mjs';
 
 function sourceEnv(environment) {
   return `POSTGRES_USER=ropa
@@ -46,11 +52,13 @@ test('reads root .env, creates only package files, and preserves the source', as
     ]);
 
     assert.equal(sourceAfter, source);
+    assert.match(backendEnv, /APP_ENV=local/);
     assert.match(backendEnv, /NODE_ENV=development/);
     assert.match(backendEnv, /DATABASE_URL=postgresql:\/\/ropa:password-local@localhost:6543\/ropa_local\?schema=public/);
     assert.match(backendEnv, /ACCESS_TOKEN_SECRET=access-token-secret-local/);
     assert.match(frontendEnv, /BACKEND_ORIGIN=https:\/\/api\.local\.ropa\.example/);
     assert.match(frontendEnv, /PORT=5100/);
+    assert.equal(await detectCurrentEnvironment(rootDir), 'local');
 
     await assert.rejects(
       writeEnvironmentFiles({ environment: 'local', rootDir }),
@@ -75,6 +83,7 @@ for (const environment of ['qa', 'stg', 'prod']) {
       ]);
 
       assert.match(backendEnv, /NODE_ENV=production/);
+      assert.match(backendEnv, new RegExp(`APP_ENV=${environment}`));
       assert.match(backendEnv, new RegExp(`DATABASE_URL=postgresql:\\/\\/ropa:password-${environment}@`));
       assert.match(backendEnv, new RegExp(`ACCESS_TOKEN_SECRET=access-token-secret-${environment}`));
       assert.doesNotMatch(backendEnv, /access-token-secret-local/);
@@ -94,6 +103,33 @@ test('requires the selected root source file', async () => {
       writeEnvironmentFiles({ environment: 'qa', rootDir }),
       /\.env does not exist/,
     );
+  } finally {
+    await rm(rootDir, { recursive: true, force: true });
+  }
+});
+
+test('supports interactive choices and confirmation', () => {
+  assert.deepEqual(parseArgs([]), { interactive: true, force: false });
+  assert.equal(resolveEnvironmentSelection('', 'stg'), 'stg');
+  assert.equal(resolveEnvironmentSelection('current', 'qa'), 'qa');
+  assert.equal(resolveEnvironmentSelection('2', 'prod'), 'local');
+  assert.equal(resolveEnvironmentSelection('prod', 'local'), 'prod');
+  assert.equal(isConfirmed('y'), true);
+  assert.equal(isConfirmed('YES'), true);
+  assert.equal(isConfirmed('n'), false);
+});
+
+test('current regenerates the last selected profile', async () => {
+  const rootDir = await mkdtemp(join(tmpdir(), 'ropa-env-current-'));
+
+  try {
+    await writeFile(join(rootDir, '.env'), sourceEnv('qa'));
+    await writeEnvironmentFiles({ environment: 'qa', rootDir });
+    const result = await writeEnvironmentFiles({ environment: 'current', rootDir, force: true });
+    const backendEnv = await readFile(join(rootDir, 'backend/.env'), 'utf8');
+
+    assert.equal(result.environment, 'qa');
+    assert.match(backendEnv, /APP_ENV=qa/);
   } finally {
     await rm(rootDir, { recursive: true, force: true });
   }

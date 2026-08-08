@@ -3,6 +3,7 @@
 import { constants } from 'node:fs';
 import { access, chmod, mkdir, readFile, writeFile } from 'node:fs/promises';
 import { dirname, resolve } from 'node:path';
+import { createInterface } from 'node:readline/promises';
 import { parseEnv } from 'node:util';
 import { fileURLToPath } from 'node:url';
 
@@ -16,9 +17,10 @@ const PROFILES = {
 };
 
 function usage() {
-  return `Usage: npm run env:setup -- [local|qa|stg|prod] [--force]
+  return `Usage: npm run env:setup -- [current|local|qa|stg|prod] [--force]
 
 Every profile reads .env at the repository root.
+Run without a profile to select one interactively and confirm before writing.
 
 The command creates backend/.env and frontend/.env. It never changes the source file.
 
@@ -38,12 +40,76 @@ export function parseArgs(args) {
   const positional = args.filter((argument) => !argument.startsWith('--'));
   if (positional.length > 1) throw new Error(`Expected one environment, received: ${positional.join(', ')}`);
 
-  const environment = positional[0] ?? 'local';
-  if (!Object.hasOwn(PROFILES, environment)) {
-    throw new Error(`Unsupported environment "${environment}". Choose one of: ${Object.keys(PROFILES).join(', ')}`);
+  if (positional.length === 0) {
+    return { interactive: true, force: args.includes('--force') };
+  }
+
+  const environment = positional[0];
+  if (environment !== 'current' && !Object.hasOwn(PROFILES, environment)) {
+    throw new Error(`Unsupported environment "${environment}". Choose one of: current, ${Object.keys(PROFILES).join(', ')}`);
   }
 
   return { environment, force: args.includes('--force') };
+}
+
+export async function detectCurrentEnvironment(rootDir = REPO_ROOT) {
+  for (const relativePath of ['backend/.env', 'frontend/.env']) {
+    try {
+      const content = await readFile(resolve(rootDir, relativePath), 'utf8');
+      const parsed = parseEnv(content);
+      if (Object.hasOwn(PROFILES, parsed.APP_ENV)) return parsed.APP_ENV;
+
+      const legacyProfile = content.match(/Generated from root\/\.env for (local|qa|stg|prod);/)?.[1];
+      if (legacyProfile) return legacyProfile;
+    } catch (error) {
+      if (error.code !== 'ENOENT') throw error;
+    }
+  }
+
+  return 'local';
+}
+
+export function resolveEnvironmentSelection(answer, currentEnvironment) {
+  const normalized = answer.trim().toLowerCase();
+  const selections = {
+    '': currentEnvironment,
+    '1': currentEnvironment,
+    current: currentEnvironment,
+    '2': 'local',
+    local: 'local',
+    '3': 'qa',
+    qa: 'qa',
+    '4': 'stg',
+    stg: 'stg',
+    '5': 'prod',
+    prod: 'prod',
+  };
+  const selected = selections[normalized];
+  if (!selected) throw new Error(`Invalid selection "${answer}"`);
+  return selected;
+}
+
+export function isConfirmed(answer) {
+  return ['y', 'yes'].includes(answer.trim().toLowerCase());
+}
+
+async function promptForEnvironment({ rootDir = REPO_ROOT, input = process.stdin, output = process.stdout } = {}) {
+  const currentEnvironment = await detectCurrentEnvironment(rootDir);
+  const prompt = createInterface({ input, output });
+
+  try {
+    output.write(`Current environment: ${currentEnvironment}\n`);
+    output.write(`1) current (${currentEnvironment})\n2) local\n3) qa\n4) stg\n5) prod\n`);
+    const answer = await prompt.question('Select environment [1]: ');
+    const environment = resolveEnvironmentSelection(answer, currentEnvironment);
+    const confirmation = await prompt.question(
+      `Run env:setup with "${environment}" using root .env? [y/N]: `,
+    );
+
+    return isConfirmed(confirmation) ? { environment, force: true } : { cancelled: true };
+  } finally {
+    prompt.close();
+  }
 }
 
 function requireValue(env, key) {
@@ -126,6 +192,7 @@ export function createEnvContents({ environment, rootEnv, sourceName = SOURCE_FI
   return {
     backend: render([
       header,
+      `APP_ENV=${environment}`,
       `NODE_ENV=${profile.nodeEnv}`,
       `PORT=${backendPort}`,
       `DATABASE_URL=${databaseUrl}`,
@@ -144,6 +211,7 @@ export function createEnvContents({ environment, rootEnv, sourceName = SOURCE_FI
     ]),
     frontend: render([
       header,
+      `APP_ENV=${environment}`,
       `BACKEND_ORIGIN=${backendOrigin}`,
       `PORT=${frontendPort}`,
     ]),
@@ -160,6 +228,7 @@ async function fileExists(path) {
 }
 
 export async function writeEnvironmentFiles({ rootDir = REPO_ROOT, environment, force = false }) {
+  if (environment === 'current') environment = await detectCurrentEnvironment(rootDir);
   if (!Object.hasOwn(PROFILES, environment)) throw new Error(`Unsupported environment "${environment}"`);
 
   const sourceName = SOURCE_FILE;
@@ -204,18 +273,27 @@ export async function writeEnvironmentFiles({ rootDir = REPO_ROOT, environment, 
     await chmod(path, 0o600);
   }
 
-  return { sourcePath, paths: targets.map(([path]) => path) };
+  return { environment, sourcePath, paths: targets.map(([path]) => path) };
 }
 
 async function main() {
   try {
-    const options = parseArgs(process.argv.slice(2));
+    let options = parseArgs(process.argv.slice(2));
     if (options.help) {
       console.log(usage());
       return;
     }
 
+    if (options.interactive) {
+      options = await promptForEnvironment();
+      if (options.cancelled) {
+        console.log('Cancelled. No files were changed.');
+        return;
+      }
+    }
+
     const result = await writeEnvironmentFiles(options);
+    console.log(`Selected environment: ${result.environment}`);
     console.log(`Read environment from ${result.sourcePath}`);
     console.log('Generated:');
     for (const path of result.paths) console.log(`  - ${path}`);
