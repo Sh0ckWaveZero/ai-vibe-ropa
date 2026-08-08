@@ -203,8 +203,8 @@
   <p class="text-center text-sm text-muted">{$t('auth.logoutConfirmBody')}</p>
   {#snippet footer()}
     <Button
-      variant="ghost"
-      class="w-full rounded-full !bg-body px-5 py-3.5 text-base !text-surface hover:opacity-90"
+      variant="danger"
+      class="w-full rounded-full px-5 py-3.5 text-base"
       loading={loggingOut}
       onclick={confirmLogout}
     >{$t('nav.logout')}</Button>

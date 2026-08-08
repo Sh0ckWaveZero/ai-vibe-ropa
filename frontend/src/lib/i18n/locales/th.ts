@@ -60,7 +60,7 @@ export const th: Dictionary = {
     newPassword: 'รหัสผ่านใหม่',
     changePassword: 'เปลี่ยนรหัสผ่าน',
     passwordChanged: 'เปลี่ยนรหัสผ่านสำเร็จ',
-    logoutConfirmTitle: 'ออกจากระบบ?',
+    logoutConfirmTitle: 'ต้องการออกจากระบบหรือไม่?',
     logoutConfirmBody: 'คุณจะต้องเข้าสู่ระบบใหม่เพื่อใช้งานต่อ',
   },
   twoFactor: {
