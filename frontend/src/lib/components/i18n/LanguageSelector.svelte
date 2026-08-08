@@ -117,9 +117,9 @@
     id={triggerId}
     bind:this={triggerElement}
     type="button"
-    class="inline-flex min-h-11 min-w-11 items-center justify-center gap-2 rounded-lg border border-transparent bg-surface-muted/50 px-3 text-sm font-medium text-body shadow-none transition-colors hover:bg-surface-muted focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary {open
-      ? 'ring-1 ring-primary/40'
-      : ''}"
+    class="inline-flex min-h-11 min-w-11 items-center justify-center gap-2 rounded-lg border-0 px-3 text-sm font-medium text-body shadow-none transition-colors hover:bg-surface-muted focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary {open
+      ? 'bg-surface-muted/50 ring-1 ring-primary/40'
+      : 'bg-transparent'}"
     aria-label={$t('language.selectorLabel', { language: LOCALE_LABELS[$locale] })}
     aria-haspopup="listbox"
     aria-expanded={open}
