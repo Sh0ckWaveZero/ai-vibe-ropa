@@ -62,12 +62,11 @@ test('reads root .env, creates only package files, and preserves the source', as
 });
 
 for (const environment of ['qa', 'stg', 'prod']) {
-  test(`reads root .env.${environment} for ${environment}`, async () => {
+  test(`reads the same root .env for ${environment}`, async () => {
     const rootDir = await mkdtemp(join(tmpdir(), `ropa-env-${environment}-`));
 
     try {
-      await writeFile(join(rootDir, '.env'), sourceEnv('local'));
-      await writeFile(join(rootDir, `.env.${environment}`), sourceEnv(environment));
+      await writeFile(join(rootDir, '.env'), sourceEnv(environment));
       await writeEnvironmentFiles({ environment, rootDir });
 
       const [backendEnv, frontendEnv] = await Promise.all([
@@ -91,10 +90,9 @@ test('requires the selected root source file', async () => {
 
   try {
     await mkdir(join(rootDir, 'backend'), { recursive: true });
-    await writeFile(join(rootDir, '.env'), sourceEnv('local'));
     await assert.rejects(
       writeEnvironmentFiles({ environment: 'qa', rootDir }),
-      /\.env\.qa does not exist/,
+      /\.env does not exist/,
     );
   } finally {
     await rm(rootDir, { recursive: true, force: true });

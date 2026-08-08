@@ -7,12 +7,7 @@ import { parseEnv } from 'node:util';
 import { fileURLToPath } from 'node:url';
 
 const REPO_ROOT = resolve(dirname(fileURLToPath(import.meta.url)), '..');
-const SOURCE_FILES = {
-  local: '.env',
-  qa: '.env.qa',
-  stg: '.env.stg',
-  prod: '.env.prod',
-};
+const SOURCE_FILE = '.env';
 const PROFILES = {
   local: { nodeEnv: 'development', frontendPort: 5173 },
   qa: { nodeEnv: 'production', frontendPort: 3000 },
@@ -23,11 +18,7 @@ const PROFILES = {
 function usage() {
   return `Usage: npm run env:setup -- [local|qa|stg|prod] [--force]
 
-Source files at the repository root:
-  local  -> .env
-  qa     -> .env.qa
-  stg    -> .env.stg
-  prod   -> .env.prod
+Every profile reads .env at the repository root.
 
 The command creates backend/.env and frontend/.env. It never changes the source file.
 
@@ -48,8 +39,8 @@ export function parseArgs(args) {
   if (positional.length > 1) throw new Error(`Expected one environment, received: ${positional.join(', ')}`);
 
   const environment = positional[0] ?? 'local';
-  if (!Object.hasOwn(SOURCE_FILES, environment)) {
-    throw new Error(`Unsupported environment "${environment}". Choose one of: ${Object.keys(SOURCE_FILES).join(', ')}`);
+  if (!Object.hasOwn(PROFILES, environment)) {
+    throw new Error(`Unsupported environment "${environment}". Choose one of: ${Object.keys(PROFILES).join(', ')}`);
   }
 
   return { environment, force: args.includes('--force') };
@@ -90,7 +81,7 @@ function render(lines) {
   return `${lines.join('\n')}\n`;
 }
 
-export function createEnvContents({ environment, rootEnv, sourceName = SOURCE_FILES[environment] }) {
+export function createEnvContents({ environment, rootEnv, sourceName = SOURCE_FILE }) {
   const profile = PROFILES[environment];
   if (!profile) throw new Error(`Unsupported environment "${environment}"`);
 
@@ -169,9 +160,9 @@ async function fileExists(path) {
 }
 
 export async function writeEnvironmentFiles({ rootDir = REPO_ROOT, environment, force = false }) {
-  const sourceName = SOURCE_FILES[environment];
-  if (!sourceName) throw new Error(`Unsupported environment "${environment}"`);
+  if (!Object.hasOwn(PROFILES, environment)) throw new Error(`Unsupported environment "${environment}"`);
 
+  const sourceName = SOURCE_FILE;
   const sourcePath = resolve(rootDir, sourceName);
   let sourceContent;
   try {

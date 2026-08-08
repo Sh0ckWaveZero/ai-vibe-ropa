@@ -179,26 +179,23 @@ flowchart LR
 | Profile | Source ที่ root | `NODE_ENV` ใน Backend |
 |---|---|---|
 | `local` | `.env` | `development` |
-| `qa` | `.env.qa` | `production` |
-| `stg` | `.env.stg` | `production` |
-| `prod` | `.env.prod` | `production` |
+| `qa` | `.env` | `production` |
+| `stg` | `.env` | `production` |
+| `prod` | `.env` | `production` |
 
 ```bash
-# Local: อ่าน root .env
+# ทุก profile อ่าน root .env ไฟล์เดียวกัน
 cp .env.example .env
 npm run env:setup -- local
-
-# QA / Staging / Production: เตรียม source ที่ root แยกกันก่อนรัน
-cp .env.example .env.qa
-cp .env.example .env.stg
-cp .env.example .env.prod
 
 npm run env:setup -- qa
 npm run env:setup -- stg
 npm run env:setup -- prod
 ```
 
-แก้ค่าใน source file ที่เลือก เช่น `PUBLIC_ORIGIN`, `BACKEND_ORIGIN`, `CORS_ORIGIN`, `POSTGRES_*` หรือ `DATABASE_URL` แล้วรันคำสั่งอีกครั้ง หากระบุ `DATABASE_URL` Script จะใช้ค่านั้นโดยตรง หากไม่ระบุจะประกอบ URL จาก `POSTGRES_USER`, `POSTGRES_PASSWORD`, `POSTGRES_DB`, `POSTGRES_HOST` และ `POSTGRES_HOST_PORT`
+Argument `local`, `qa`, `stg` หรือ `prod` ใช้เลือก profile สำหรับค่าที่ Script derive เช่น `NODE_ENV` และ default port เท่านั้น ข้อมูลระบบและ Secret อ่านจาก root `.env` เสมอ
+
+แก้ค่าใน root `.env` เช่น `PUBLIC_ORIGIN`, `BACKEND_ORIGIN`, `CORS_ORIGIN`, `POSTGRES_*` หรือ `DATABASE_URL` แล้วรันคำสั่งอีกครั้ง หากระบุ `DATABASE_URL` Script จะใช้ค่านั้นโดยตรง หากไม่ระบุจะประกอบ URL จาก `POSTGRES_USER`, `POSTGRES_PASSWORD`, `POSTGRES_DB`, `POSTGRES_HOST` และ `POSTGRES_HOST_PORT`
 
 Script จะไม่แก้ source file และไม่เขียนทับไฟล์ปลายทางเดิม หากต้องการสร้าง `backend/.env` และ `frontend/.env` ใหม่ให้ใช้ `--force`:
 
@@ -206,7 +203,7 @@ Script จะไม่แก้ source file และไม่เขียนท
 npm run env:setup -- stg --force
 ```
 
-> **สำคัญ:** `--force` เขียนทับเฉพาะ `backend/.env` และ `frontend/.env`; root `.env*` เป็น source of truth และจะไม่ถูกแก้ไข
+> **สำคัญ:** `--force` เขียนทับเฉพาะ `backend/.env` และ `frontend/.env`; root `.env` เป็น source of truth และจะไม่ถูกแก้ไข
 
 ### รันในเครื่อง
 
