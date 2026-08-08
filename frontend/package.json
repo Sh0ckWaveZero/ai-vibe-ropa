@@ -9,18 +9,25 @@
     "preview": "vite preview",
     "start": "node build/index.js",
     "check": "svelte-kit sync && svelte-check --tsconfig ./tsconfig.json",
-    "test": "node --experimental-strip-types --test src/lib/api/client.test.ts"
+    "test": "npm run test:unit && npm run test:components",
+    "test:unit": "node --experimental-strip-types --test src/lib/api/client.test.ts",
+    "test:components": "vitest run --config vitest.config.ts"
   },
   "devDependencies": {
     "@sveltejs/adapter-node": "^5.5.7",
     "@sveltejs/kit": "^2.70.2",
     "@sveltejs/vite-plugin-svelte": "^7.3.0",
     "@tailwindcss/vite": "^4.3.3",
+    "@testing-library/jest-dom": "^6.9.1",
+    "@testing-library/svelte": "^5.4.2",
+    "@testing-library/user-event": "^14.6.3",
     "@types/node": "^24.13.3",
+    "jsdom": "^26.1.0",
     "svelte": "^5.56.8",
     "svelte-check": "^4.7.5",
     "tailwindcss": "^4.3.3",
     "typescript": "^5.9.3",
-    "vite": "^8.2.1"
+    "vite": "^8.2.1",
+    "vitest": "^4.1.10"
   }
 }

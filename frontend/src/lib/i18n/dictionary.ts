@@ -232,6 +232,10 @@ export interface Dictionary {
     rejected: string;
     rejectedWithReason: string;
   };
+  language: {
+    selectorLabel: string;
+    menuLabel: string;
+  };
   theme: {
     light: string;
     dark: string;

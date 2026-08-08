@@ -234,6 +234,10 @@ export const zh: Dictionary = {
     rejected: '{referenceNo} 已被退回',
     rejectedWithReason: '{referenceNo} 已被退回：{rejectionReason}',
   },
+  language: {
+    selectorLabel: '切换语言。当前语言：{language}',
+    menuLabel: '选择语言',
+  },
   theme: {
     light: '浅色',
     dark: '深色',

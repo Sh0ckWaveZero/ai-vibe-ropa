@@ -235,6 +235,10 @@ export const th: Dictionary = {
     rejected: '{referenceNo} ถูกตีกลับ',
     rejectedWithReason: '{referenceNo} ถูกตีกลับ: {rejectionReason}',
   },
+  language: {
+    selectorLabel: 'เปลี่ยนภาษา ภาษาปัจจุบัน: {language}',
+    menuLabel: 'เลือกภาษา',
+  },
   theme: {
     light: 'สว่าง',
     dark: 'มืด',

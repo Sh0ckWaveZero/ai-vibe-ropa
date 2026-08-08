@@ -1,11 +1,12 @@
 <script lang="ts">
   import { goto, invalidateAll } from '$app/navigation';
-  import { getLocaleContext, setLocaleCookie, LOCALES, LOCALE_LABELS, type Locale } from '$lib/i18n';
+  import { getLocaleContext } from '$lib/i18n';
   import { theme, toggleTheme } from '$lib/stores/theme';
   import { apiFetch } from '$lib/api/client';
   import Dialog from '$lib/components/ui/Dialog.svelte';
   import Button from '$lib/components/ui/Button.svelte';
   import NotificationBell from '$lib/components/layout/NotificationBell.svelte';
+  import LanguageSelector from '$lib/components/i18n/LanguageSelector.svelte';
   import type { SessionUser } from '../../../app';
 
   let { user, onMenuClick }: { user: SessionUser; onMenuClick: () => void } = $props();
@@ -15,11 +16,6 @@
   let userMenuOpen = $state(false);
   let logoutOpen = $state(false);
   let loggingOut = $state(false);
-
-  function selectLocale(loc: Locale) {
-    locale.set(loc);
-    setLocaleCookie(loc);
-  }
 
   function roleName(user: SessionUser) {
     return $locale === 'th' ? user.roleNameTh : $locale === 'zh' ? user.roleNameZh : user.roleNameEn;
@@ -44,8 +40,12 @@
   }
 </script>
 
-<header class="flex h-14 items-center justify-between border-b border-border bg-surface-raised px-4">
-  <button class="rounded-md p-2 text-body hover:bg-surface-muted md:hidden" onclick={onMenuClick} aria-label="Menu">
+<header class="flex h-14 items-center justify-between border-b border-border bg-surface-raised px-2 sm:px-4">
+  <button
+    class="flex size-11 shrink-0 items-center justify-center rounded-md text-body hover:bg-surface-muted md:hidden"
+    onclick={onMenuClick}
+    aria-label="Menu"
+  >
     <svg viewBox="0 0 24 24" class="size-5" fill="none" stroke="currentColor" stroke-width="2">
       <path d="M4 6h16M4 12h16M4 18h16" stroke-linecap="round" />
     </svg>
@@ -53,25 +53,14 @@
 
   <div class="hidden md:block"></div>
 
-  <div class="flex items-center gap-2">
-    <div class="flex items-center rounded-md border border-border p-0.5 text-xs">
-      {#each LOCALES as loc (loc)}
-        <button
-          onclick={() => selectLocale(loc)}
-          class="rounded px-2 py-1 font-medium transition-colors {$locale === loc
-            ? 'bg-primary text-primary-contrast'
-            : 'text-muted hover:text-body'}"
-        >
-          {LOCALE_LABELS[loc]}
-        </button>
-      {/each}
-    </div>
+  <div class="flex items-center gap-1 sm:gap-2">
+    <LanguageSelector />
 
     <NotificationBell />
 
     <button
       onclick={toggleTheme}
-      class="rounded-md p-2 text-body hover:bg-surface-muted"
+      class="flex size-11 shrink-0 items-center justify-center rounded-md text-body hover:bg-surface-muted"
       aria-label={$t('theme.toggle')}
       title={$t('theme.toggle')}
     >

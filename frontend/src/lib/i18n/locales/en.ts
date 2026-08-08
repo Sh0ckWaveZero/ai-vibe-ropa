@@ -235,6 +235,10 @@ export const en: Dictionary = {
     rejected: '{referenceNo} was rejected',
     rejectedWithReason: '{referenceNo} was rejected: {rejectionReason}',
   },
+  language: {
+    selectorLabel: 'Change language. Current language: {language}',
+    menuLabel: 'Choose a language',
+  },
   theme: {
     light: 'Light',
     dark: 'Dark',
