@@ -27,7 +27,7 @@
   onclick={(e) => {
     if (e.target === dialogEl) onClose();
   }}
-  class="w-full max-w-md rounded-lg border border-border bg-surface-raised p-0 text-body backdrop:bg-black/50"
+  class="fixed inset-0 m-auto h-fit max-h-[calc(100dvh-2rem)] w-[calc(100%-2rem)] max-w-md overflow-y-auto rounded-lg border border-border bg-surface-raised p-0 text-body backdrop:bg-black/50"
 >
   <div class="border-b border-border px-5 py-3">
     <h2 class="text-sm font-semibold">{title}</h2>
