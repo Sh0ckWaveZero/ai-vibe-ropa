@@ -8,7 +8,8 @@
     "build": "vite build",
     "preview": "vite preview",
     "start": "node build/index.js",
-    "check": "svelte-kit sync && svelte-check --tsconfig ./tsconfig.json"
+    "check": "svelte-kit sync && svelte-check --tsconfig ./tsconfig.json",
+    "test": "node --experimental-strip-types --test src/lib/api/client.test.ts"
   },
   "devDependencies": {
     "@sveltejs/adapter-node": "^5.5.7",
