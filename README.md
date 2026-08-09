@@ -1,21 +1,21 @@
-# ROPA
+# 📋 ROPA
 
 ระบบบันทึกและบริหารจัดการ **Record of Processing Activities** สำหรับติดตั้งใช้งานเอง (self-hosted) ตามแนวทาง GDPR มาตรา 30 และ PDPA ของไทย
 
 รองรับการแบ่งข้อมูลตามหน่วยงาน ขั้นตอนอนุมัติ การกำหนดสิทธิ์ 2FA ไฟล์แนบ การแจ้งเตือน การสำรองข้อมูลอัตโนมัติ และ 3 ภาษา: ไทย อังกฤษ และจีน
 
-## ภาพรวม
+## ✨ ภาพรวม
 
-- บริหารรายการ ROPA แยกตามหน่วยงาน
-- ส่งรายการเพื่ออนุมัติ ตีกลับ และแก้ไขใหม่ได้
-- ปรับบทบาทและสิทธิ์จากหน้าเว็บผ่าน Permission Matrix
-- บังคับใช้ 2FA และ HTTPS กับทุกบัญชี
-- แนบไฟล์ ส่งออก Excel/PDF และตรวจสอบ Audit Log ได้
-- สำรองข้อมูลอัตโนมัติทุกคืน
+- 🏢 บริหารรายการ ROPA แยกตามหน่วยงาน
+- 🔄 ส่งรายการเพื่ออนุมัติ ตีกลับ และแก้ไขใหม่ได้
+- 🔐 ปรับบทบาทและสิทธิ์จากหน้าเว็บผ่าน Permission Matrix
+- 🔒 บังคับใช้ 2FA และ HTTPS กับทุกบัญชี
+- 📎 แนบไฟล์ ส่งออก Excel/PDF และตรวจสอบ Audit Log ได้
+- 💾 สำรองข้อมูลอัตโนมัติทุกคืน
 
-## เริ่มต้นใช้งาน
+## 🚀 เริ่มต้นใช้งาน
 
-### 1. เตรียมไฟล์ตั้งค่า
+### 1. ⚙️ เตรียมไฟล์ตั้งค่า
 
 ```bash
 cp .env.example .env
@@ -31,7 +31,7 @@ openssl rand -hex 32
 openssl rand -hex 32
 ```
 
-### 2. เริ่มระบบด้วย Docker Compose
+### 2. 🐳 เริ่มระบบด้วย Docker Compose
 
 ```bash
 docker compose pull
@@ -46,22 +46,22 @@ container-compose --file docker-compose.yml up -d --env-file .env
 container list --all
 ```
 
-### 3. เปิดหน้าเว็บ
+### 3. 🌐 เปิดหน้าเว็บ
 
 เปิด [https://localhost:8443](https://localhost:8443) หรือพอร์ตที่กำหนดใน `PUBLIC_HTTPS_PORT`
 
 ระบบสร้างใบรับรองแบบ self-signed ให้อัตโนมัติในการรันครั้งแรก เบราว์เซอร์จึงอาจแสดงคำเตือน สำหรับระบบที่เปิดใช้งานผ่านอินเทอร์เน็ตควรเปลี่ยนเป็นใบรับรองจาก CA เช่น Let's Encrypt
 
-## บัญชีเริ่มต้นและ 2FA
+## 🔐 บัญชีเริ่มต้นและ 2FA
 
 บัญชีผู้ดูแลระบบเริ่มต้นกำหนดได้ใน `.env` โดยมีค่าเริ่มต้นดังนี้:
 
 | รายการ | ค่าเริ่มต้น |
 |---|---|
-| อีเมล | `admin@ropa.local` |
-| รหัสผ่าน | `ChangeMe123!` |
+| 📧 อีเมล | `admin@ropa.local` |
+| 🔑 รหัสผ่าน | `ChangeMe123!` |
 
-> **สำคัญ:** เปลี่ยนรหัสผ่านผู้ดูแลระบบทันทีหลังเข้าสู่ระบบครั้งแรก
+> ⚠️ **สำคัญ:** เปลี่ยนรหัสผ่านผู้ดูแลระบบทันทีหลังเข้าสู่ระบบครั้งแรก
 
 ทุกบัญชีต้องเปิดใช้ TOTP ซึ่งรองรับแอปอย่าง Google Authenticator และ Authy ผู้ใช้ที่ยังไม่ตั้งค่าจะถูกนำไปสแกน QR หลังกรอกรหัสผ่านถูกต้อง
 
@@ -83,20 +83,20 @@ container list --all
 
 </details>
 
-## บทบาท สิทธิ์ และขั้นตอน ROPA
+## 👥 บทบาท สิทธิ์ และขั้นตอน ROPA
 
 ### บทบาทเริ่มต้น
 
 | บทบาท | สิทธิ์โดยสรุป |
 |---|---|
-| Super Admin | จัดการทุกส่วนของระบบ |
-| DPO | ดูและแก้ไข ROPA ทุกหน่วยงาน อนุมัติ ตีกลับ และดูประวัติการใช้งาน |
-| Department Editor | สร้าง แก้ไข และส่ง ROPA ของหน่วยงานตนเองเพื่อขออนุมัติ |
-| Viewer / Auditor | ดู ROPA ทุกหน่วยงานและประวัติการใช้งานแบบอ่านอย่างเดียว |
+| 👑 Super Admin | จัดการทุกส่วนของระบบ |
+| 🛡️ DPO | ดูและแก้ไข ROPA ทุกหน่วยงาน อนุมัติ ตีกลับ และดูประวัติการใช้งาน |
+| ✍️ Department Editor | สร้าง แก้ไข และส่ง ROPA ของหน่วยงานตนเองเพื่อขออนุมัติ |
+| 👁️ Viewer / Auditor | ดู ROPA ทุกหน่วยงานและประวัติการใช้งานแบบอ่านอย่างเดียว |
 
 สร้างบทบาทใหม่หรือแก้ไขสิทธิ์ได้จากหน้า **บทบาทและสิทธิ์** โดยไม่ต้องแก้โค้ด
 
-### Permission Matrix
+### 🔑 Permission Matrix
 
 สิทธิ์อยู่ในรูปแบบ `module.action` เช่น `ropa.read_own`, `ropa.read_all`, `ropa.approve` และ `users.manage` โดยผูกกับบทบาทผ่านตาราง `role_permissions`
 
@@ -104,7 +104,7 @@ container list --all
 
 รายการสิทธิ์และบทบาทเริ่มต้นอยู่ที่ `backend/src/constants/permissions.ts`
 
-### ขั้นตอนการอนุมัติ
+### 🔄 ขั้นตอนการอนุมัติ
 
 ```text
 แบบร่าง (DRAFT) → รออนุมัติ (SUBMITTED) → อนุมัติแล้ว (APPROVED)
@@ -115,7 +115,7 @@ Department Editor เป็นผู้สร้าง แก้ไข และ
 
 ระบบบันทึกทุกการกระทำลง Audit Log พร้อมแสดงค่าก่อนและหลังของแต่ละฟิลด์ ผู้มีสิทธิ์ `ropa.create` ยังสามารถทำสำเนารายการเดิมเป็นแบบร่างใหม่ได้
 
-### ไฟล์แนบและการแจ้งเตือน
+### 📎 ไฟล์แนบและการแจ้งเตือน
 
 รองรับ PDF, Word, Excel, CSV/TXT และรูปภาพ ขนาดสูงสุดกำหนดด้วย `MAX_UPLOAD_SIZE_MB` ซึ่งมีค่าเริ่มต้น 10 MB
 
@@ -123,7 +123,7 @@ Department Editor เป็นผู้สร้าง แก้ไข และ
 
 เมื่อส่งรายการ ผู้มีสิทธิ์อนุมัติจะได้รับการแจ้งเตือน เมื่ออนุมัติหรือตีกลับ ผู้สร้างจะได้รับแจ้งเช่นกัน ระบบจะไม่ส่งการแจ้งเตือนให้ผู้กระทำรายการเอง
 
-### ส่งออก Excel และ PDF
+### 📤 ส่งออก Excel และ PDF
 
 ผู้มีสิทธิ์ `ropa.export` สามารถกรองตามหน่วยงาน สถานะ และช่วงวันที่ แล้วส่งออกเป็น:
 
@@ -134,7 +134,7 @@ Department Editor เป็นผู้สร้าง แก้ไข และ
 
 ข้อมูล Excel ป้องกัน Formula Injection (CWE-1236) โดยเติม `'` หน้าข้อความที่ขึ้นต้นด้วย `=`, `+`, `-` หรือ `@`
 
-## สถาปัตยกรรมและเทคโนโลยี
+## 🏗️ สถาปัตยกรรมและเทคโนโลยี
 
 ```mermaid
 flowchart LR
@@ -146,11 +146,11 @@ flowchart LR
 
 | ส่วนประกอบ | เทคโนโลยี |
 |---|---|
-| Frontend | SvelteKit 5, Tailwind CSS v4, SSR และ Dark Mode |
-| Backend | Node.js, Express, TypeScript และ Prisma ORM |
-| Database | PostgreSQL |
-| Reverse Proxy | nginx |
-| Runtime | Docker Compose |
+| 🎨 Frontend | SvelteKit 5, Tailwind CSS v4, SSR และ Dark Mode |
+| ⚙️ Backend | Node.js, Express, TypeScript และ Prisma ORM |
+| 🗄️ Database | PostgreSQL |
+| 🌐 Reverse Proxy | nginx |
+| 🐳 Runtime | Docker Compose |
 
 - nginx ยุติการเชื่อมต่อ TLS และเปลี่ยน HTTP พอร์ต 8080 ไปยัง HTTPS
 - Cookie ถูกกำหนดเป็น `Secure` การเข้าสู่ระบบใน Production จึงต้องทำผ่าน HTTPS
@@ -158,7 +158,7 @@ flowchart LR
 - SSR เรียก Backend ผ่านเครือข่ายภายในและส่งต่อ Cookie ด้วย `frontend/src/lib/server/backend.ts`
 - Client เรียก `/api/*` ผ่าน `frontend/src/lib/api/client.ts` ซึ่ง Refresh Access Token เมื่อได้รับสถานะ 401
 
-## การพัฒนาและโครงสร้างโปรเจกต์
+## 💻 การพัฒนาและโครงสร้างโปรเจกต์
 
 ### รันในเครื่อง
 
@@ -185,7 +185,7 @@ npm run dev
 - Frontend: [http://localhost:5173](http://localhost:5173) โดย Proxy `/api` ไปยัง Backend
 
 <details>
-<summary>ดูโครงสร้างโปรเจกต์</summary>
+<summary>📁 ดูโครงสร้างโปรเจกต์</summary>
 
 ```text
 backend/
@@ -208,10 +208,10 @@ nginx/
 
 </details>
 
-## ความปลอดภัยและเอกสารเพิ่มเติม
+## 🛡️ ความปลอดภัยและเอกสารเพิ่มเติม
 
 ทุก Push และ Pull Request จะผ่านการตรวจ Secret, Build, Type Check, Dependency Audit, CodeQL, Trivy และการรีวิว Diff อัตโนมัติ
 
-- [CI-CD.md](CI-CD.md) — รายละเอียดไปป์ไลน์ CI/CD
-- [SECURITY.md](SECURITY.md) — มาตรการความปลอดภัยและการรายงานช่องโหว่
-- [CREDITS.md](CREDITS.md) — แหล่งที่มาและไลบรารีที่ใช้งาน
+- 📄 [CI-CD.md](CI-CD.md) — รายละเอียดไปป์ไลน์ CI/CD
+- 🔒 [SECURITY.md](SECURITY.md) — มาตรการความปลอดภัยและการรายงานช่องโหว่
+- 🙏 [CREDITS.md](CREDITS.md) — แหล่งที่มาและไลบรารีที่ใช้งาน
