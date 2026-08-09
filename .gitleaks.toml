@@ -8,3 +8,7 @@ description = "Known-safe test fixtures — dummy secrets used only for local/CI
 paths = [
   '''backend/\.env\.test$''',
 ]
+regexes = [
+  '''generate-a-unique-64-char-hex-key-for-(qa|stg|prod)''',
+  '''21f89afa9005d45a214308296c863ce8c07bfcfbff48639814083b60940bbb60''',
+]
