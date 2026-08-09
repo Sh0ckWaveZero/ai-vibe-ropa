@@ -5,6 +5,7 @@
 **/.svelte-kit
 **/build
 **/dist
+**/coverage
 **/.env
 **/.env.*
 backend/src/generated

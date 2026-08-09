@@ -38,6 +38,14 @@ docker compose pull
 docker compose up -d --build --wait
 ```
 
+Apple Container ใช้คำสั่งต่อไปนี้แทน (ต้องติดตั้ง `container-compose`):
+
+```bash
+container-compose --file docker-compose.yml build
+container-compose --file docker-compose.yml up -d --env-file .env
+container list --all
+```
+
 ### 3. เปิดหน้าเว็บ
 
 เปิด [https://localhost:8443](https://localhost:8443) หรือพอร์ตที่กำหนดใน `PUBLIC_HTTPS_PORT`

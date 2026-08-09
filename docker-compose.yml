@@ -1,27 +1,33 @@
 services:
   postgres:
-    image: postgres:16-alpine
+    image: postgres:18.4-alpine3.24
     restart: unless-stopped
     environment:
       POSTGRES_USER: ${POSTGRES_USER:-ropa}
-      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-ropa}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?POSTGRES_PASSWORD is required}
       POSTGRES_DB: ${POSTGRES_DB:-ropa}
+      # PostgreSQL 18 uses a version-specific child directory. This also avoids
+      # Apple Container's root-level lost+found directory during initdb.
+      PGDATA: /var/lib/postgresql/18/docker
     volumes:
-      - postgres_data:/var/lib/postgresql/data
+      - postgres_data:/var/lib/postgresql
     ports:
       - '127.0.0.1:${POSTGRES_HOST_PORT:-5433}:5432'
     healthcheck:
+      # container-compose for Apple Container passes $$ through to /bin/sh,
+      # where it expands to the shell PID. Resolve these non-secret values at
+      # Compose load time so the health probe uses the intended role/database.
       test: ['CMD-SHELL', 'pg_isready -U ${POSTGRES_USER:-ropa} -d ${POSTGRES_DB:-ropa}']
       interval: 5s
       timeout: 5s
       retries: 10
+      start_period: 10s
+    networks:
+      - database
 
-  # Nightly pg_dump with rotation (daily/weekly/monthly retention). Dumps
-  # land in ./backups on the host — copy that directory off-box for real
-  # disaster recovery, this alone only protects against DB-container/volume
-  # loss, not a whole-host failure. See CLAUDE.md for the restore command.
+  # Host-local backups do not protect against whole-host loss; copy ./backups off-host.
   backup:
-    image: prodrigestivill/postgres-backup-local:16
+    image: prodrigestivill/postgres-backup-local:18-alpine
     restart: unless-stopped
     depends_on:
       postgres:
@@ -32,17 +38,20 @@ services:
       POSTGRES_HOST: postgres
       POSTGRES_DB: ${POSTGRES_DB:-ropa}
       POSTGRES_USER: ${POSTGRES_USER:-ropa}
-      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-ropa}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?POSTGRES_PASSWORD is required}
       SCHEDULE: '@daily'
       BACKUP_KEEP_DAYS: 7
       BACKUP_KEEP_WEEKS: 4
       BACKUP_KEEP_MONTHS: 6
       HEALTHCHECK_PORT: 8080
+    networks:
+      - database
 
   backend:
     build:
       context: .
       dockerfile: backend/Dockerfile
+    init: true
     restart: unless-stopped
     depends_on:
       postgres:
@@ -50,7 +59,14 @@ services:
     environment:
       NODE_ENV: production
       PORT: 4000
-      DATABASE_URL: postgresql://${POSTGRES_USER:-ropa}:${POSTGRES_PASSWORD:-ropa}@postgres:5432/${POSTGRES_DB:-ropa}?schema=public
+      # Keep connection parts separate. container-compose 1.1 for Apple
+      # Container does not resolve multiple ${...} expressions embedded in a
+      # single value; the backend entrypoint safely assembles DATABASE_URL.
+      POSTGRES_HOST: postgres
+      POSTGRES_PORT: 5432
+      POSTGRES_USER: ${POSTGRES_USER:-ropa}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?POSTGRES_PASSWORD is required}
+      POSTGRES_DB: ${POSTGRES_DB:-ropa}
       ACCESS_TOKEN_SECRET: ${ACCESS_TOKEN_SECRET:?ACCESS_TOKEN_SECRET is required}
       REFRESH_TOKEN_TTL_DAYS: ${REFRESH_TOKEN_TTL_DAYS:-7}
       ACCESS_TOKEN_TTL_MIN: ${ACCESS_TOKEN_TTL_MIN:-15}
@@ -60,27 +76,59 @@ services:
       TWOFA_ISSUER: ${TWOFA_ISSUER:-ROPA}
       CORS_ORIGIN: ${PUBLIC_ORIGIN:-https://localhost:8443}
       ADMIN_EMAIL: ${ADMIN_EMAIL:-admin@ropa.local}
-      ADMIN_PASSWORD: ${ADMIN_PASSWORD:-ChangeMe123!}
+      ADMIN_PASSWORD: ${ADMIN_PASSWORD:?ADMIN_PASSWORD is required}
       UPLOAD_DIR: /app/uploads
       MAX_UPLOAD_SIZE_MB: ${MAX_UPLOAD_SIZE_MB:-10}
     volumes:
       - uploads:/app/uploads
+    healthcheck:
+      test:
+        [
+          'CMD',
+          'node',
+          '-e',
+          "fetch('http://127.0.0.1:4000/health').then((r) => { if (!r.ok) process.exit(1) }).catch(() => process.exit(1))",
+        ]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 30s
+    networks:
+      - app
+      - database
 
   frontend:
     build:
       context: .
       dockerfile: frontend/Dockerfile
+    init: true
     restart: unless-stopped
     depends_on:
-      - backend
+      backend:
+        condition: service_healthy
     environment:
       PORT: 3000
-      BACKEND_ORIGIN: http://backend:4000
+      # Keep the host as a standalone value so Apple container-compose can
+      # replace the service name with the container IP before startup.
+      BACKEND_HOST: backend
+      BACKEND_PORT: 4000
+    healthcheck:
+      test:
+        [
+          'CMD',
+          'node',
+          '-e',
+          "fetch('http://127.0.0.1:3000/favicon.svg').then((r) => { if (!r.ok) process.exit(1) }).catch(() => process.exit(1))",
+        ]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 20s
+    networks:
+      - app
 
-  # One-off container: generates a self-signed TLS cert into the shared
-  # `certs` volume on first run, then exits successfully. nginx waits for it.
   certs:
-    image: alpine:3.20
+    image: alpine:3.24
     entrypoint:
       - sh
       - -c
@@ -100,17 +148,25 @@ services:
       - certs:/certs
 
   nginx:
-    image: nginx:1.27-alpine
+    image: nginx:1.30.4-alpine3.24
+    # Apple container-compose patches peer names into /etc/hosts only after a
+    # container reaches "running". Give it time to add backend/frontend before
+    # nginx resolves its upstreams while parsing the configuration.
+    entrypoint:
+      - sh
+      - -c
+      - 'sleep 3; exec /docker-entrypoint.sh nginx -g "daemon off;"'
     restart: unless-stopped
     depends_on:
       frontend:
-        condition: service_started
+        condition: service_healthy
       backend:
-        condition: service_started
+        condition: service_healthy
       certs:
         condition: service_completed_successfully
     environment:
       PUBLIC_HTTPS_PORT: ${PUBLIC_HTTPS_PORT:-8443}
+      MAX_UPLOAD_SIZE_MB: ${MAX_UPLOAD_SIZE_MB:-10}
     ports:
       - '${PUBLIC_PORT:-8080}:80'
       - '${PUBLIC_HTTPS_PORT:-8443}:443'
@@ -118,6 +174,22 @@ services:
       - ./nginx/nginx.conf:/etc/nginx/nginx.conf:ro
       - ./nginx/templates:/etc/nginx/templates:ro
       - certs:/etc/nginx/certs:ro
+    healthcheck:
+      test:
+        [
+          'CMD-SHELL',
+          'wget --no-check-certificate --spider --quiet https://127.0.0.1/health || exit 1',
+        ]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
+    networks:
+      - app
+
+networks:
+  app:
+  database:
 
 volumes:
   postgres_data:

@@ -1,4 +1,6 @@
-FROM node:22-alpine AS base
+# syntax=docker/dockerfile:1.7
+
+FROM node:24.17.0-alpine3.24 AS base
 WORKDIR /app
 RUN npm install --global npm@11.19.0
 COPY package.json package-lock.json ./
@@ -18,17 +20,22 @@ COPY backend/src ./backend/src
 RUN npm run build --workspace=ropa-backend
 
 FROM deps AS production-deps
-RUN npm prune --omit=dev --workspace=ropa-backend
+RUN npm prune --omit=dev --workspace=ropa-backend && npm cache clean --force
 
-FROM node:22-alpine AS runtime
+FROM node:24.17.0-alpine3.24 AS runtime
 WORKDIR /app
 ENV NODE_ENV=production
-COPY --from=production-deps /app/node_modules ./node_modules
-COPY backend/package.json ./package.json
-COPY backend/prisma.config.ts ./prisma.config.ts
-COPY backend/prisma ./prisma
-COPY --from=build /app/backend/dist ./dist
-COPY backend/docker-entrypoint.sh ./
+RUN apk add --no-cache su-exec \
+  && mkdir -p /app/uploads \
+  && chown node:node /app/uploads \
+  && rm -rf /usr/local/lib/node_modules/npm \
+  && rm -f /usr/local/bin/npm /usr/local/bin/npx
+COPY --chown=node:node backend/package.json ./package.json
+COPY --chown=node:node backend/prisma.config.ts ./prisma.config.ts
+COPY --chown=node:node backend/prisma ./prisma
+COPY --from=production-deps --chown=node:node /app/node_modules ./node_modules
+COPY --from=build --chown=node:node /app/backend/dist ./dist
+COPY --chown=node:node backend/docker-entrypoint.sh ./
 RUN chmod +x docker-entrypoint.sh
 
 EXPOSE 4000

@@ -1,2 +1,7 @@
 # Auto detect text files and perform LF normalization
 * text=auto
+
+# Shell scripts run inside Linux containers via a #!/bin/sh shebang — a
+# CRLF line ending breaks that shebang (the kernel looks for an interpreter
+# literally named "/bin/sh\r"). Force LF regardless of platform/autocrlf.
+*.sh text eol=lf
