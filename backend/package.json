@@ -10,11 +10,12 @@
     "prisma:generate": "prisma generate",
     "prisma:migrate": "prisma migrate deploy",
     "prisma:migrate:dev": "prisma migrate dev",
-    "seed": "tsx src/db/seed/index.ts",
+    "seed": "prisma db seed",
     "test": "vitest run"
   },
   "dependencies": {
-    "@prisma/client": "^6.9.0",
+    "@prisma/adapter-pg": "^7.9.1",
+    "@prisma/client": "^7.9.1",
     "bcryptjs": "^2.4.3",
     "cookie-parser": "^1.4.7",
     "cors": "^2.8.5",
@@ -28,7 +29,7 @@
     "multer": "^2.2.0",
     "otplib": "^12.0.1",
     "pdfkit": "^0.19.1",
-    "prisma": "^6.9.0",
+    "prisma": "^7.9.1",
     "qrcode": "^1.5.4",
     "zod": "^3.24.1"
   },
@@ -50,10 +51,10 @@
     "vitest": "^4.1.10"
   },
   "allowScripts": {
-    "@prisma/client@6.19.3": true,
-    "@prisma/engines@6.19.3": true,
+    "@prisma/engines@7.9.1": true,
     "esbuild@0.28.1": true,
-    "prisma@6.19.3": true
+    "fsevents": false,
+    "prisma@7.9.1": true
   },
   "overrides": {
     "uuid": "^11.1.1"
