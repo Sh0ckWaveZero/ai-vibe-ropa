@@ -1,0 +1,67 @@
+{
+  "$schema": "https://turborepo.dev/schema.json",
+  "tasks": {
+    "build": {
+      "dependsOn": ["^build"],
+      "outputs": ["dist/**", "build/**"]
+    },
+    "check": {},
+    "dev": {
+      "cache": false,
+      "persistent": true,
+      "passThroughEnv": [
+        "ACCESS_TOKEN_SECRET",
+        "ACCESS_TOKEN_TTL_MIN",
+        "ADMIN_EMAIL",
+        "ADMIN_PASSWORD",
+        "BACKEND_HOST",
+        "BACKEND_ORIGIN",
+        "BACKEND_PORT",
+        "CORS_ORIGIN",
+        "DATABASE_URL",
+        "HOST",
+        "MAX_UPLOAD_SIZE_MB",
+        "NODE_ENV",
+        "PORT",
+        "PRE_AUTH_TOKEN_SECRET",
+        "PRE_AUTH_TOKEN_TTL_MIN",
+        "REFRESH_TOKEN_TTL_DAYS",
+        "TOTP_ENCRYPTION_KEY",
+        "TWOFA_ISSUER",
+        "UPLOAD_DIR"
+      ]
+    },
+    "test": {
+      "cache": false,
+      "passThroughEnv": ["DATABASE_URL"]
+    },
+    "prisma:generate": {
+      "cache": false,
+      "passThroughEnv": ["DATABASE_URL"]
+    },
+    "prisma:migrate": {
+      "cache": false,
+      "passThroughEnv": ["DATABASE_URL"]
+    },
+    "seed": {
+      "cache": false,
+      "passThroughEnv": [
+        "ACCESS_TOKEN_SECRET",
+        "ACCESS_TOKEN_TTL_MIN",
+        "ADMIN_EMAIL",
+        "ADMIN_PASSWORD",
+        "CORS_ORIGIN",
+        "DATABASE_URL",
+        "MAX_UPLOAD_SIZE_MB",
+        "NODE_ENV",
+        "PORT",
+        "PRE_AUTH_TOKEN_SECRET",
+        "PRE_AUTH_TOKEN_TTL_MIN",
+        "REFRESH_TOKEN_TTL_DAYS",
+        "TOTP_ENCRYPTION_KEY",
+        "TWOFA_ISSUER",
+        "UPLOAD_DIR"
+      ]
+    }
+  }
+}
