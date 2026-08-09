@@ -8,8 +8,24 @@
     hint?: string;
   }
 
-  let { label, value = $bindable(), error, hint, id, class: className = '', ...rest }: Props = $props();
-  const inputId = id ?? `input-${Math.random().toString(36).slice(2, 9)}`;
+  let {
+    label,
+    value = $bindable(),
+    error,
+    hint,
+    id,
+    'aria-describedby': ariaDescribedby,
+    'aria-invalid': ariaInvalid,
+    class: className = '',
+    ...rest
+  }: Props = $props();
+  const generatedId = $props.id();
+  const inputId = $derived(id ?? generatedId);
+  const hintId = $derived(`${inputId}-hint`);
+  const errorId = $derived(`${inputId}-error`);
+  const description = $derived(
+    [ariaDescribedby, hint ? hintId : undefined, error ? errorId : undefined].filter(Boolean).join(' ') || undefined,
+  );
 </script>
 
 <div class="flex flex-col gap-1">
@@ -19,13 +35,15 @@
   <input
     id={inputId}
     bind:value
+    aria-describedby={description}
+    aria-invalid={ariaInvalid ?? (error ? 'true' : undefined)}
     {...rest}
     class="rounded-md border border-border bg-surface-raised px-3 py-2 text-sm text-body outline-none focus:border-primary focus:ring-1 focus:ring-primary {className}"
   />
   {#if hint}
-    <p class="text-xs text-muted">{hint}</p>
+    <p id={hintId} class="text-xs text-muted">{hint}</p>
   {/if}
   {#if error}
-    <p class="text-xs text-red-600">{error}</p>
+    <p id={errorId} class="text-xs text-red-600" role="alert">{error}</p>
   {/if}
 </div>

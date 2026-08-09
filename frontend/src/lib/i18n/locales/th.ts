@@ -30,6 +30,8 @@ export const th: Dictionary = {
     previous: 'ก่อนหน้า',
     next: 'ถัดไป',
     paginationSummary: 'แสดง {from}-{to} จาก {total} รายการ',
+    paginationLabel: 'การแบ่งหน้า',
+    skipToContent: 'ข้ามไปยังเนื้อหาหลัก',
   },
   nav: {
     dashboard: 'แดชบอร์ด',
@@ -40,6 +42,11 @@ export const th: Dictionary = {
     auditLog: 'ประวัติการใช้งาน',
     logout: 'ออกจากระบบ',
     profile: 'โปรไฟล์',
+    primary: 'เมนูหลัก',
+    menu: 'เมนูนำทาง',
+    closeMenu: 'ปิดเมนูนำทาง',
+    userMenu: 'เมนูผู้ใช้งาน',
+    closeUserMenu: 'ปิดเมนูผู้ใช้งาน',
   },
   auth: {
     loginTitle: 'เข้าสู่ระบบ',
@@ -53,7 +60,7 @@ export const th: Dictionary = {
     newPassword: 'รหัสผ่านใหม่',
     changePassword: 'เปลี่ยนรหัสผ่าน',
     passwordChanged: 'เปลี่ยนรหัสผ่านสำเร็จ',
-    logoutConfirmTitle: 'ออกจากระบบ?',
+    logoutConfirmTitle: 'ต้องการออกจากระบบหรือไม่?',
     logoutConfirmBody: 'คุณจะต้องเข้าสู่ระบบใหม่เพื่อใช้งานต่อ',
   },
   twoFactor: {
@@ -230,10 +237,15 @@ export const th: Dictionary = {
     title: 'การแจ้งเตือน',
     empty: 'ยังไม่มีการแจ้งเตือน',
     markAllRead: 'อ่านทั้งหมดแล้ว',
+    close: 'ปิดการแจ้งเตือน',
     submitted: '{referenceNo} ถูกส่งเพื่อขออนุมัติ',
     approved: '{referenceNo} ได้รับการอนุมัติแล้ว',
     rejected: '{referenceNo} ถูกตีกลับ',
     rejectedWithReason: '{referenceNo} ถูกตีกลับ: {rejectionReason}',
+  },
+  language: {
+    selectorLabel: 'เปลี่ยนภาษา ภาษาปัจจุบัน: {language}',
+    menuLabel: 'เลือกภาษา',
   },
   theme: {
     light: 'สว่าง',

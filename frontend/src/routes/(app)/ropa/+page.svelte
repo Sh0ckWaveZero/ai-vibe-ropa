@@ -171,13 +171,14 @@
     {:else}
       <div class="overflow-x-auto">
         <table class="w-full text-left text-sm">
+          <caption class="sr-only">{$t('ropa.title')}</caption>
           <thead>
             <tr class="border-b border-border text-xs text-muted">
-              <th class="py-2 pr-4">{$t('ropa.referenceNo')}</th>
-              <th class="py-2 pr-4">{$t('ropa.activityName')}</th>
-              <th class="py-2 pr-4">{$t('ropa.department')}</th>
-              <th class="py-2 pr-4">{$t('ropa.createdBy')}</th>
-              <th class="py-2 pr-4">{$t('ropa.status')}</th>
+              <th scope="col" class="py-2 pr-4">{$t('ropa.referenceNo')}</th>
+              <th scope="col" class="py-2 pr-4">{$t('ropa.activityName')}</th>
+              <th scope="col" class="py-2 pr-4">{$t('ropa.department')}</th>
+              <th scope="col" class="py-2 pr-4">{$t('ropa.createdBy')}</th>
+              <th scope="col" class="py-2 pr-4">{$t('ropa.status')}</th>
             </tr>
           </thead>
           <tbody>

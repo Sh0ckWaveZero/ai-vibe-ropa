@@ -109,13 +109,13 @@
   <Card title={$t('ropa.activityName')}>
     <div class="grid grid-cols-1 gap-4 sm:grid-cols-2">
       <div class="flex flex-col gap-1">
-        <span class="text-sm font-medium text-body">{$t('ropa.department')}</span>
         {#if lockDepartment}
+          <span class="text-sm font-medium text-body">{$t('ropa.department')}</span>
           <p class="rounded-md border border-border bg-surface-muted px-3 py-2 text-sm text-body">
             {lockedDeptName ? deptName(lockedDeptName) : '-'}
           </p>
         {:else}
-          <Select bind:value={value.departmentId} {disabled} label="">
+          <Select bind:value={value.departmentId} {disabled} label={$t('ropa.department')}>
             <option value="" disabled>{$t('common.all')}</option>
             {#each departments as d (d.id)}
               <option value={d.id}>{deptName(d)}</option>

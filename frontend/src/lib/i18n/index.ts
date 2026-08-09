@@ -4,7 +4,7 @@ import { dictionaries } from './dictionaries';
 import { LOCALE_COOKIE, type Locale } from './types';
 
 export type { Locale } from './types';
-export { LOCALES, LOCALE_LABELS, LOCALE_COOKIE, isLocale } from './types';
+export { LOCALES, LOCALE_LABELS, LOCALE_COUNTRY_CODES, LOCALE_COOKIE, isLocale } from './types';
 
 type Translate = (path: string, params?: Record<string, string | number>) => string;
 
@@ -35,8 +35,8 @@ function translate(locale: Locale, path: string, params?: Record<string, string 
   return result;
 }
 
-export function createLocaleContext(initial: Locale): LocaleContext {
-  const locale = writable<Locale>(initial);
+export function createLocaleContext(getInitial: () => Locale): LocaleContext {
+  const locale = writable<Locale>(getInitial());
   const t = derived(locale, ($locale): Translate => {
     return (path, params) => translate($locale, path, params);
   });
