@@ -1,5 +1,5 @@
 import crypto from 'node:crypto';
-import { authenticator } from 'otplib';
+import { generateSecret, generateURI, verify } from 'otplib';
 import QRCode from 'qrcode';
 import { env } from '../config/env.js';
 
@@ -7,8 +7,6 @@ const ALGORITHM = 'aes-256-gcm';
 const IV_LENGTH = 12;
 const AUTH_TAG_LENGTH = 16;
 const ENCRYPTION_KEY = Buffer.from(env.TOTP_ENCRYPTION_KEY, 'hex');
-
-authenticator.options = { window: 1 };
 
 export function encryptSecret(plainText: string): string {
   const iv = crypto.randomBytes(IV_LENGTH);
@@ -30,18 +28,19 @@ export function decryptSecret(stored: string): string {
 }
 
 export function generateTotpSecret(): string {
-  return authenticator.generateSecret();
+  return generateSecret();
 }
 
 export async function buildQrCode(secretBase32: string, email: string): Promise<{ otpauthUrl: string; qrCodeDataUrl: string }> {
-  const otpauthUrl = authenticator.keyuri(email, env.TWOFA_ISSUER, secretBase32);
+  const otpauthUrl = generateURI({ issuer: env.TWOFA_ISSUER, label: email, secret: secretBase32 });
   const qrCodeDataUrl = await QRCode.toDataURL(otpauthUrl);
   return { otpauthUrl, qrCodeDataUrl };
 }
 
-export function verifyTotpCode(secretBase32: string, code: string): boolean {
+export async function verifyTotpCode(secretBase32: string, code: string): Promise<boolean> {
   try {
-    return authenticator.check(code, secretBase32);
+    const result = await verify({ secret: secretBase32, token: code, epochTolerance: 30 });
+    return result.valid;
   } catch {
     return false;
   }
