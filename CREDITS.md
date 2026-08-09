@@ -5,6 +5,31 @@
 **Mahutthawat Raksakiettisak** and **Tunya Toon** (Srinakharinwirot University
 / มศว) sparked the original idea for this project.
 
+## Contributors
+
+**[Sh0ckWaveZero](https://github.com/Sh0ckWaveZero)** contributed a large,
+well-tested round of upgrades and hardening across the whole stack, split
+into scoped, independently-reviewed pull requests:
+
+- Migrated PostgreSQL 16 → 18 and modernized both container images
+  (non-root runtime via `su-exec`, `npm`/`npx` stripped from production
+  images, required secrets instead of insecure defaults, health checks on
+  every service, Apple Container support).
+- Migrated Prisma ORM 6 → 7 (driver adapter, new config file, generated
+  client relocation) and upgraded Express 4→5, Zod 3→4, bcryptjs 2→3,
+  Helmet 7→8, and otplib 12→13.
+- Converted the repo into an npm/Turborepo workspace with a single
+  consolidated lockfile and task orchestration.
+- Upgraded the GitHub Actions workflows to the Node.js 24 runtime and
+  pinned the Trivy scanner version.
+- Rewrote `README.md` into a more compact, example-driven structure.
+- Added an accessible, localized UI pass: a keyboard-navigable language
+  selector, ARIA-correct dialogs/menus with proper focus management,
+  self-hosted Thai/Chinese web fonts, and masked/copyable/downloadable
+  2FA secret and backup-code displays.
+- Added a reusable, animated auto-submit OTP input and fixed a CSRF-token
+  staleness bug on immediate re-login after logout.
+
 ## Reference code
 
 The mandatory TOTP two-factor authentication flow (pre-auth cookie/stage
