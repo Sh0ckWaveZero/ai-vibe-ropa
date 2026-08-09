@@ -10,13 +10,13 @@
 
   onMount(() => {
     if (!$pendingBackupCodes) {
-      goto('/');
+      goto('/', { replaceState: true, invalidateAll: true });
     }
   });
 
-  function acknowledge() {
+  async function acknowledge() {
     pendingBackupCodes.set(null);
-    goto('/');
+    await goto('/', { replaceState: true, invalidateAll: true });
   }
 </script>
 
