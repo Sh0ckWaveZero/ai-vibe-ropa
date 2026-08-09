@@ -286,11 +286,16 @@ for the specific endpoints worth limiting more tightly.
 gap.** That specific query (`js/missing-token-validation`) recognizes known
 libraries like `csurf` — which is deprecated upstream with its own
 advisories, so we deliberately didn't use it — not an arbitrary hand-rolled
-double-submit-cookie implementation, however correct. The suppression
-comment lives right on `app.use(cookieParser())` in `app.ts`, next to
-`app.use(requireCsrf)` on the following line. Don't remove that comment
-without confirming real CSRF coverage still exists another way; don't add
-new mutating routes outside the `/api` prefix `requireCsrf` covers, either.
+double-submit-cookie implementation, however correct. **The `// codeql[...]`
+suppression comment must be on its own line, directly above the flagged
+statement — never a trailing same-line comment.** (`AlertSuppression.qll`
+checks that no AST node exists on the comment's own line before its column,
+and that the comment's line is exactly `flaggedLine - 1`; a same-line
+trailing comment satisfies neither and silently fails to suppress anything
+— this bit us once already, see `app.ts`'s comment right above
+`app.use(cookieParser())`.) Don't remove that comment without confirming
+real CSRF coverage still exists another way; don't add new mutating routes
+outside the `/api` prefix `requireCsrf` covers, either.
 
 **`.gitleaks.toml` allowlists exactly one path:
 `backend/.env.test`.** Its `TOTP_ENCRYPTION_KEY` is a real random 64-hex-char
