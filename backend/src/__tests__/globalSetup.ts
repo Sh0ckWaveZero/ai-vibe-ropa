@@ -1,10 +1,10 @@
-import dotenv from 'dotenv';
 import { execSync } from 'node:child_process';
+import { loadTestEnv } from './testEnv.js';
 
 // Runs once, in its own process, before any test worker starts.
 export default async function globalSetup() {
   // Never let a developer shell or CI variable redirect test migrations.
-  dotenv.config({ path: '.env.test', override: true, quiet: true });
+  loadTestEnv();
   execSync('npx prisma migrate deploy', { stdio: 'inherit', env: process.env });
 
   const { seedBaseData } = await import('../db/seed/seedBaseData.js');
